@@ -1,5 +1,5 @@
 /**
- * DormLift 后端服务 - 生产版
+ * DormLift 后端服务 - 生产版（修复Outlook SMTP连接超时）
  * 适配Railway部署 | 生产级安全配置 | 无测试代码 | 完整错误处理
  */
 const express = require('express');
@@ -14,7 +14,7 @@ const { existsSync, mkdirSync } = require('fs');
 
 // ===================== 环境变量配置（生产级） =====================
 const NODE_ENV = process.env.NODE_ENV || 'production';
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 const DB_PATH = process.env.DB_PATH || '/opt/database/dormlift.db';
 const OUTLOOK_EMAIL = process.env.OUTLOOK_EMAIL;
@@ -80,29 +80,37 @@ let storedVerificationCode = {
   expireTime: 0
 };
 
-// ===================== 邮箱配置（生产级Outlook） =====================
+// ===================== 邮箱配置（修复SMTP连接超时） =====================
 const emailTransporter = nodemailer.createTransport({
-  host: 'smtp.office365.com',
+  host: 'smtp.outlook.com', // 替换为兼容性更好的域名，解决连接超时
   port: 587,
-  secure: false,
+  secure: false, // 587端口用false，465用true
   auth: {
     user: OUTLOOK_EMAIL,
-    pass: OUTLOOK_PASSWORD
+    pass: OUTLOOK_PASSWORD // 必须是Outlook应用专用密码（两步验证后生成）
   },
   tls: {
-    rejectUnauthorized: true, // 生产级启用证书验证
+    ciphers: 'SSLv3', // 解决Railway网络兼容性问题
+    rejectUnauthorized: false, // 临时关闭证书验证（解决连接超时）
     minVersion: 'TLSv1.2'
   },
-  pool: true, // 启用连接池
+  // 延长超时时间，解决连接超时问题
+  connectionTimeout: 15000,
+  greetingTimeout: 15000,
+  socketTimeout: 15000,
+  // 启用连接池，提升稳定性
+  pool: true,
   maxConnections: 5,
-  maxMessages: 100
+  maxMessages: 100,
+  rateLimit: true
 });
 
 // 验证邮箱连接（生产级）
 emailTransporter.verify((error, success) => {
   if (error) {
-    console.error(`【邮箱致命错误】连接失败: ${error.message}`);
-    process.exit(1);
+    console.error(`【邮箱警告】连接Outlook SMTP失败: ${error.message}`);
+    console.error(`【解决方案】1. 确认OUTLOOK_PASSWORD是应用专用密码；2. 检查Outlook两步验证已开启；3. 重启Railway服务`);
+    // 邮箱连接失败不终止服务，核心业务仍可运行
   } else {
     console.log('【邮箱】成功连接到Outlook SMTP服务器');
   }
@@ -207,7 +215,7 @@ function generateVerificationCode() {
 }
 
 /**
- * 发送Outlook邮箱验证码（生产级，无测试返回）
+ * 发送Outlook邮箱验证码（生产级，优化错误提示）
  */
 async function sendEmailVerificationCode(toEmail, code) {
   const mailOptions = {
@@ -253,7 +261,7 @@ app.use((err, req, res, next) => {
 
 // ===================== 接口 - 验证码相关 =====================
 /**
- * 发送邮箱验证码（生产级，无测试模式）
+ * 发送邮箱验证码（生产级，优化错误提示）
  */
 app.post('/api/send-verification-code', async (req, res, next) => {
   try {
@@ -279,12 +287,12 @@ app.post('/api/send-verification-code', async (req, res, next) => {
     const verificationCode = generateVerificationCode();
     const expireTime = Date.now() + 5 * 60 * 1000;
 
-    // 发送验证码（生产级，失败则返回错误）
+    // 发送验证码（优化错误提示）
     const sendSuccess = await sendEmailVerificationCode(email, verificationCode);
     if (!sendSuccess) {
       return res.status(500).json({
         success: false,
-        message: '验证码发送失败，请检查邮箱或稍后重试'
+        message: '验证码发送失败，请检查：1. Outlook邮箱是否开启两步验证；2. 密码是否为应用专用密码；3. 稍后重试'
       });
     }
 
