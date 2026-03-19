@@ -59,8 +59,12 @@ app.use(bodyParser.urlencoded({
   limit: '1mb'
 }));
 
-// 静态文件服务（首页）
-app.use(express.static(path.join(__dirname, '.')));
+// 静态文件服务（强制托管前端，修复打不开问题）
+app.use(express.static(__dirname, {
+  index: 'index.html', // 强制指定首页为index.html
+  extensions: ['html'], // 自动补全html后缀
+  maxAge: 0 // 禁用缓存，避免旧页面
+}));
 
 // ===================== 数据库连接（生产级） =====================
 const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
@@ -824,13 +828,35 @@ app.post('/api/get-profile', (req, res, next) => {
   }
 });
 
-// ===================== 首页路由 =====================
-app.get('/', (req, res, next) => {
-  const indexPath = path.join(__dirname, 'index.html');
-  fs.readFile(indexPath, 'utf8', (err, data) => {
-    if (err) return next(err);
-    res.status(200).send(data);
-  });
+// ===================== 首页+兜底路由（修复前端打不开） =====================
+app.get('*', (req, res, next) => {
+  // 排除/api接口，只处理前端页面请求
+  if (!req.path.startsWith('/api')) {
+    const indexPath = path.join(__dirname, 'index.html');
+    
+    // 打印日志，方便排查文件是否存在（生产级可注释）
+    console.log('【前端加载】尝试读取:', indexPath);
+    console.log('【前端加载】文件是否存在:', fs.existsSync(indexPath));
+    
+    // 优先用sendFile（比readFile更稳定）
+    res.sendFile(indexPath, (err) => {
+      if (err) {
+        // 兜底提示：明确告诉用户问题所在
+        res.status(404).send(`
+          <h1>❌ 前端文件未找到</h1>
+          <p>请检查：</p>
+          <ol>
+            <li>是否将 index.html 部署到 Railway（和 server.js 同目录）</li>
+            <li>文件名称是否为 index.html（大小写敏感）</li>
+            <li>是否推送到 GitHub 并触发 Railway 重新部署</li>
+          </ol>
+        `);
+      }
+    });
+  } else {
+    // api接口请求，继续走原有逻辑
+    next();
+  }
 });
 
 // ===================== 启动服务器（生产级） =====================
