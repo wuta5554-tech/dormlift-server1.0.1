@@ -14,7 +14,7 @@ const { existsSync, mkdirSync } = require('fs');
 
 // ===================== 环境变量配置（生产级） =====================
 const NODE_ENV = process.env.NODE_ENV || 'production';
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 const DB_PATH = process.env.DB_PATH || '/opt/database/dormlift.db';
 const OUTLOOK_EMAIL = process.env.OUTLOOK_EMAIL;
@@ -38,12 +38,12 @@ if (!existsSync(dbDir)) {
 const app = express();
 
 // 生产级CORS配置
+// 同域名CORS配置（自动匹配当前域名，无需环境变量）
 const corsOptions = {
-  origin: CORS_ORIGIN.split(',').map(origin => origin.trim()),
+  origin: true, // 自动识别并允许当前域名，替代读取环境变量
+  credentials: true, // 允许携带凭证，解决跨域（同域下也兼容）
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-  maxAge: 86400 // 预检请求缓存24小时
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
 app.use(cors(corsOptions));
 
