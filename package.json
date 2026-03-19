@@ -1,21 +1,31 @@
 {
-  "name": "backend",
+  "name": "dormlift-server",
   "version": "1.0.0",
-  "description": "",
+  "description": "DormLift 宿舍搬家互助平台 - 生产级后端服务",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "NODE_ENV=production node server.js",
+    "dev": "nodemon server.js",
+    "lint": "eslint . --fix",
+    "test": "echo \"Production ready, no test specified\" && exit 0"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "body-parser": "^2.2.2",
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "nodemailer": "^8.0.2",
-    "sqlite3": "^6.0.1"
-  }
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "nodemailer": "^6.9.13",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0",
+    "eslint": "^8.57.0"
+  },
+  "engines": {
+    "node": ">=16.x",
+    "npm": ">=8.x"
+  },
+  "keywords": ["dormlift", "express", "sqlite3", "nodemailer", "railway"],
+  "author": "",
+  "license": "MIT"
 }
