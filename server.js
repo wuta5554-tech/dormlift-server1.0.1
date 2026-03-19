@@ -14,7 +14,7 @@ const { existsSync, mkdirSync } = require('fs');
 
 // ===================== 环境变量配置（生产级） =====================
 const NODE_ENV = process.env.NODE_ENV || 'production';
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 const DB_PATH = process.env.DB_PATH || '/opt/database/dormlift.db';
 const OUTLOOK_EMAIL = process.env.OUTLOOK_EMAIL;
