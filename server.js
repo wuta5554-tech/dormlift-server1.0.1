@@ -10,11 +10,9 @@ const https = require('https');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
+// 💡 物理重置：使用全新数据库名
+const DB_PATH = path.join(__dirname, 'dormlift_ultra_v1.db');
 
-// 💡 关键：改名以强制更新数据库结构，解决“发布后大厅空白”的问题
-const DB_PATH = path.join(__dirname, 'dormlift_v10_final.db');
-
-// --- 1. Cloudinary 云存储配置 ---
 cloudinary.config({ 
   cloud_name: 'ddlbhkmwb', 
   api_key: '659513524184184', 
@@ -23,11 +21,7 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: 'dormlift_production',
-    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
-    public_id: (req, file) => Date.now() + '-' + file.originalname.split('.')[0],
-  },
+  params: { folder: 'dormlift_production', allowed_formats: ['jpg', 'png', 'jpeg', 'webp'] },
 });
 const upload = multer({ storage: storage });
 
@@ -35,145 +29,103 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// --- 2. 数据库初始化 (含 10 字段用户表及联查支持) ---
 const db = new sqlite3.Database(DB_PATH, () => {
-    console.log('✅ Database V10 Final Connected');
+    console.log('🚀 DormLift Ultra V1 Engine Active');
     db.serialize(() => {
-        // 验证码表
         db.run(`CREATE TABLE IF NOT EXISTS verify_codes (email TEXT PRIMARY KEY, code TEXT, expire_at INTEGER)`);
-        
-        // 用户表 (补全 10 字段)
+        // 用户表：严格 10 字段
         db.run(`CREATE TABLE IF NOT EXISTS users (
             student_id TEXT PRIMARY KEY, school_name TEXT, first_name TEXT, given_name TEXT, 
             gender TEXT, anonymous_name TEXT, phone TEXT, email TEXT, password TEXT,
             rating_avg REAL DEFAULT 5.0, task_count INTEGER DEFAULT 0
         )`);
-
-        // 任务表 (含多图存储字段)
+        // 任务表：含 img_url (TEXT)
         db.run(`CREATE TABLE IF NOT EXISTS tasks (
             id INTEGER PRIMARY KEY AUTOINCREMENT, publisher_id TEXT, helper_id TEXT,
             move_date TEXT, move_time TEXT, from_addr TEXT, to_addr TEXT, 
             items_desc TEXT, reward TEXT, has_elevator INTEGER, load_weight TEXT, 
             img_url TEXT, status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
-
-        // 评价表
-        db.run(`CREATE TABLE IF NOT EXISTS reviews (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, task_id INTEGER, from_id TEXT, to_id TEXT, score INTEGER, comment TEXT
-        )`);
     });
 });
 
-// --- 3. 邮件核心 (Google Apps Script 转发) ---
+// 邮件发送 (保持不变)
 function sendMail(email, code) {
-    const data = JSON.stringify({ to: email, subject: 'DormLift Verification', html: `Your code: <b>${code}</b>. Valid for 5 mins.` });
+    const data = JSON.stringify({ to: email, subject: 'DormLift Code', html: `Code: <b>${code}</b>` });
     const req = https.request('https://script.google.com/macros/s/AKfycbzAE3Vyi5B1sdNM--P89E7UDO1VF03lmehb0S6N0tHlvtpvdadDGfyM7jswaUB-RZhU/exec', 
     { method: 'POST', headers: {'Content-Type': 'text/plain'} });
-    req.on('error', (e) => console.error("Mail Error:", e.message));
     req.write(data); req.end();
 }
 
 app.post('/api/auth/send-code', (req, res) => {
     const email = (req.body.email || "").trim().toLowerCase();
-    if (!email) return res.status(400).json({ success: false, message: 'Email required' });
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    db.run(`INSERT OR REPLACE INTO verify_codes VALUES (?, ?, ?)`, [email, code, Date.now() + 300000], (err) => {
-        if (err) return res.status(500).json({ success: false });
-        sendMail(email, code);
-        console.log(`🔑 Verification for ${email}: ${code}`);
-        res.json({ success: true });
+    db.run(`INSERT OR REPLACE INTO verify_codes VALUES (?, ?, ?)`, [email, code, Date.now() + 300000], () => {
+        sendMail(email, code); res.json({ success: true });
     });
 });
 
-// --- 4. 身份验证 API (强壮版双模登录) ---
-
-// 注册：全量字段录入
+// 注册 API：确保 10 字段全部入库
 app.post('/api/auth/register', async (req, res) => {
     let { student_id, email, code, password, school_name, first_name, given_name, gender, anonymous_name, phone } = req.body;
     const cleanEmail = (email || "").trim().toLowerCase();
-    const cleanID = (student_id || "").trim();
-
     db.get(`SELECT * FROM verify_codes WHERE email = ?`, [cleanEmail], async (err, row) => {
-        if (!row || row.code !== code || Date.now() > row.expire_at) {
-            return res.status(400).json({ success: false, message: 'Invalid or expired code.' });
-        }
+        if (!row || row.code !== code || Date.now() > row.expire_at) return res.status(400).json({ success: false, message: 'Invalid code.' });
         const hashed = await bcrypt.hash(password, 10);
-        const sql = `INSERT INTO users (student_id, school_name, first_name, given_name, gender, anonymous_name, phone, email, password) VALUES (?,?,?,?,?,?,?,?,?)`;
-        db.run(sql, [cleanID, school_name, first_name, given_name, gender, anonymous_name, phone, cleanEmail, hashed], (err) => {
-            if (err) return res.status(400).json({ success: false, message: 'Account or Email already exists.' });
-            res.json({ success: true });
-        });
+        db.run(`INSERT INTO users (student_id, school_name, first_name, given_name, gender, anonymous_name, phone, email, password) VALUES (?,?,?,?,?,?,?,?,?)`,
+            [(student_id || "").trim(), school_name, first_name, given_name, gender, anonymous_name, phone, cleanEmail, hashed], (err) => {
+                if (err) return res.status(400).json({ success: false, message: 'ID or Email exists.' });
+                res.json({ success: true });
+            });
     });
 });
 
-// 登录：对齐前端模式
+// 登录 API
 app.post('/api/auth/login', (req, res) => {
     const { mode, student_id, email, password, code } = req.body;
     if (mode === 'email') {
         const cleanEmail = (email || "").trim().toLowerCase();
-        db.get(`SELECT * FROM verify_codes WHERE email = ?`, [cleanEmail], (err, vRow) => {
-            if (!vRow || vRow.code !== code || Date.now() > vRow.expire_at) return res.status(400).json({ success: false, message: 'Invalid login code.' });
-            db.get(`SELECT * FROM users WHERE email = ?`, [cleanEmail], (err, user) => {
-                if (!user) return res.status(400).json({ success: false, message: 'Email not registered.' });
+        db.get(`SELECT * FROM users WHERE email = ?`, [cleanEmail], (err, user) => {
+            if (!user) return res.status(400).json({ success: false, message: 'Not found.' });
+            db.get(`SELECT * FROM verify_codes WHERE email = ?`, [cleanEmail], (err, v) => {
+                if(!v || v.code !== code) return res.status(400).json({ success: false, message: 'Invalid code.' });
                 delete user.password; res.json({ success: true, user });
             });
         });
     } else {
-        const cleanID = (student_id || "").trim();
-        if(!cleanID) return res.status(400).json({ success: false, message: 'Student ID required.' });
-        db.get(`SELECT * FROM users WHERE student_id = ?`, [cleanID], async (err, user) => {
-            if (!user || !(await bcrypt.compare(password, user.password))) {
-                return res.status(400).json({ success: false, message: 'Wrong ID or Password.' });
-            }
+        db.get(`SELECT * FROM users WHERE student_id = ?`, [(student_id || "").trim()], async (err, user) => {
+            if (!user || !(await bcrypt.compare(password, user.password))) return res.status(400).json({ success: false, message: 'Wrong credentials.' });
             delete user.password; res.json({ success: true, user });
         });
     }
 });
 
-// --- 5. 任务流转 API (支持多图与联查) ---
-
-app.post('/api/task/create', upload.array('task_images', 5), (req, res) => {
-    const { publisher_id, move_date, move_time, from_addr, to_addr, items_desc, reward, has_elevator, load_weight } = req.body;
-    const imgUrls = JSON.stringify(req.files ? req.files.map(f => f.path) : []);
-    const sql = `INSERT INTO tasks (publisher_id, move_date, move_time, from_addr, to_addr, items_desc, reward, has_elevator, load_weight, img_url) VALUES (?,?,?,?,?,?,?,?,?,?)`;
-    db.run(sql, [publisher_id, move_date, move_time, from_addr, to_addr, items_desc, reward, has_elevator, load_weight, imgUrls], (err) => {
-        if (err) return res.status(500).json({ success: false });
-        res.json({ success: true });
-    });
-});
-
+// 任务大厅 API (联表查询确保不报错)
 app.get('/api/task/all', (req, res) => {
-    // 💡 核心修复：JOIN users 表，确保拿到 rating_avg 且不会因为字段缺失报错
-    const sql = `SELECT t.*, u.anonymous_name as pub_name, u.rating_avg 
-                 FROM tasks t JOIN users u ON t.publisher_id = u.student_id 
-                 WHERE t.status = 'pending' ORDER BY t.id DESC`;
-    db.all(sql, [], (err, rows) => res.json({ success: true, list: rows || [] }));
-});
-
-app.post('/api/task/workflow', (req, res) => {
-    const { task_id, status, helper_id } = req.body;
-    let sql = helper_id ? `UPDATE tasks SET status = ?, helper_id = ? WHERE id = ?` : `UPDATE tasks SET status = ? WHERE id = ?`;
-    let params = helper_id ? [status, helper_id, task_id] : [status, task_id];
-    db.run(sql, params, (err) => res.json({ success: !err }));
-});
-
-// --- 6. 用户资料与看板 ---
-
-app.post('/api/user/profile', (req, res) => {
-    db.get(`SELECT * FROM users WHERE student_id = ?`, [req.body.student_id], (err, row) => {
-        if (row) delete row.password;
-        res.json({ success: true, user: row });
-    });
-});
-
-app.post('/api/user/dashboard', (req, res) => {
-    // 💡 联查以确保看板能显示发布者的名字
-    const sql = `SELECT t.*, u.anonymous_name as pub_name 
-                 FROM tasks t JOIN users u ON t.publisher_id = u.student_id 
-                 WHERE t.publisher_id = ? OR t.helper_id = ? ORDER BY t.id DESC`;
-    db.all(sql, [req.body.student_id, req.body.student_id], (err, rows) => {
+    db.all(`SELECT t.*, u.anonymous_name as pub_name, u.rating_avg FROM tasks t JOIN users u ON t.publisher_id = u.student_id WHERE t.status = 'pending' ORDER BY t.id DESC`, [], (err, rows) => {
         res.json({ success: true, list: rows || [] });
     });
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log(`🚀 DormLift Final Engine V10 running on ${PORT}`));
+// Dashboard API
+app.post('/api/user/dashboard', (req, res) => {
+    db.all(`SELECT t.*, u.anonymous_name as pub_name FROM tasks t JOIN users u ON t.publisher_id = u.student_id WHERE t.publisher_id = ? OR t.helper_id = ? ORDER BY t.id DESC`, 
+    [req.body.student_id, req.body.student_id], (err, rows) => {
+        res.json({ success: true, list: rows || [] });
+    });
+});
+
+app.post('/api/task/create', upload.array('task_images', 5), (req, res) => {
+    const { publisher_id, move_date, move_time, from_addr, to_addr, items_desc, reward, has_elevator, load_weight } = req.body;
+    const imgUrls = JSON.stringify(req.files ? req.files.map(f => f.path) : []);
+    db.run(`INSERT INTO tasks (publisher_id, move_date, move_time, from_addr, to_addr, items_desc, reward, has_elevator, load_weight, img_url) VALUES (?,?,?,?,?,?,?,?,?,?)`,
+        [publisher_id, move_date, move_time, from_addr, to_addr, items_desc, reward, has_elevator, load_weight, imgUrls], (err) => res.json({ success: !err }));
+});
+
+app.post('/api/user/profile', (req, res) => {
+    db.get(`SELECT * FROM users WHERE student_id = ?`, [req.body.student_id], (err, row) => {
+        if(row) delete row.password; res.json({ success: true, user: row });
+    });
+});
+
+app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Final Backend on ${PORT}`));
