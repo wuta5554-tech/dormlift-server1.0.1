@@ -203,10 +203,10 @@ function initDatabase() {
  * 验证Outlook邮箱格式
  */
 function isValidOutlookEmail(email) {
-  const outlookRegex = /^[a-zA-Z0-9._%+-]+@(outlook|hotmail)\.com$/i;
-  return outlookRegex.test(email) && email.length <= 254;
+  // 允许任意合法邮箱，不再限制 outlook/hotmail
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email) && email.length <= 254;
 }
-
 /**
  * 生成6位数字验证码
  */
