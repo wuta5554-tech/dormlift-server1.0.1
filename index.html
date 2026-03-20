@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DormLift Pro - University Moving Marketplace</title>
+    <title>DormLift Pro - Premium Campus Moving</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
@@ -55,8 +55,8 @@
         .detail-right { flex: 1; min-width: 300px; padding: 40px; display: flex; flex-direction: column; background: white; }
 
         /* --- 图片预览 --- */
-        #img-preview-container { margin: 10px 0 20px 0; display: none; }
-        #img-preview { width: 120px; height: 120px; object-fit: cover; border-radius: 12px; border: 2px solid var(--primary); padding: 2px; }
+        #img-preview-container { margin: 10px 0 20px 0; display: none; text-align: left; }
+        #img-preview { width: 120px; height: 120px; object-fit: cover; border-radius: 12px; border: 2px solid var(--primary); padding: 2px; background: white; }
 
         #map { height: 380px; border-radius: 16px; margin-bottom: 20px; border: 1px solid var(--border); }
         .profile-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 30px; }
@@ -80,8 +80,9 @@
 
     <div id="auth-modal" class="modal-overlay">
         <div class="pro-card" style="width:100%; max-width:420px; position:relative;">
-            <button class="close-btn" style="position:absolute; top:20px; right:20px; border:none; background:none; font-size:24px; cursor:pointer; color:#94a3b8;" onclick="closeModal('auth-modal')">&times;</button>
+            <button style="position:absolute; top:20px; right:20px; border:none; background:none; font-size:24px; cursor:pointer; color:#94a3b8;" onclick="closeModal('auth-modal')">&times;</button>
             <h2 id="auth-title" style="text-align:center; font-weight:800; margin-top:0;">Welcome</h2>
+            
             <div id="login-form">
                 <input type="text" id="l-id" placeholder="Student ID" class="input-pro">
                 <input type="password" id="l-pw" placeholder="Password" class="input-pro">
@@ -93,6 +94,7 @@
                     </a>
                 </div>
             </div>
+
             <div id="reg-form" style="display:none;">
                 <input type="text" id="r-id" placeholder="Student ID" class="input-pro">
                 <div style="display:flex; gap:10px;"><input type="text" id="r-first" placeholder="First Name" class="input-pro"><input type="text" id="r-given" placeholder="Last Name" class="input-pro"></div>
@@ -101,12 +103,12 @@
                     <input type="email" id="r-email" placeholder="Email Address" class="input-pro" style="margin-bottom:0;">
                     <button class="btn" style="background:#0f172a; color:white; min-width:90px;" onclick="sendCode('r-email')">Code</button>
                 </div>
-                <p style="font-size:11px; color:#94a3b8; margin:8px 0 16px 5px;">We'll send a code for verification.</p>
+                <p style="font-size:11px; color:#94a3b8; margin:8px 0 16px 5px;">Verification code is required.</p>
                 <input type="text" id="r-code" placeholder="6-Digit Code (or 8888)" class="input-pro">
                 <input type="text" id="r-anon" placeholder="Display Nickname" class="input-pro">
                 <input type="password" id="r-pw" placeholder="Password" class="input-pro">
                 <input type="password" id="r-pw-confirm" placeholder="Confirm Password" class="input-pro">
-                <button class="btn btn-primary" style="width:100%;" onclick="handleRegister()">Sign Up Now</button>
+                <button class="btn btn-primary" style="width:100%;" onclick="handleRegister()">Create Account</button>
                 <p style="text-align:center; font-size:14px; margin-top:20px;"><a href="javascript:void(0)" onclick="toggleAuth(true)">Back to login</a></p>
             </div>
         </div>
@@ -124,71 +126,57 @@
         <div id="home" class="page active">
             <div class="hero-section">
                 <h1>Campus moving, <span>reimagined.</span></h1>
-                <p style="font-size:18px; color:var(--text-muted); max-width:600px; margin:0 auto 30px;">The smartest way to move. Connect with verified fellow students for reliable, affordable help.</p>
+                <p style="font-size:18px; color:var(--text-muted); max-width:600px; margin:0 auto 30px;">Direct peer-to-peer moving help for the university community.</p>
                 <div style="display: flex; justify-content: center; gap: 16px;">
                     <button class="btn btn-primary" onclick="requireAuth('post')">Post a Request <i class="fa-solid fa-arrow-right"></i></button>
-                    <button class="btn btn-secondary" onclick="navigate('explore')">Explore Market</button>
-                </div>
-            </div>
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:24px; margin-top:60px;">
-                <div class="pro-card" style="text-align:center;">
-                    <div style="background:#eff6ff; width:60px; height:60px; border-radius:15px; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; font-size:24px; color:var(--primary);"><i class="fa-solid fa-dollar-sign"></i></div>
-                    <h3>Student Friendly</h3><p>Negotiate rewards directly with peers. No expensive commercial movers.</p>
-                </div>
-                <div class="pro-card" style="text-align:center;">
-                    <div style="background:#f0fdf4; width:60px; height:60px; border-radius:15px; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; font-size:24px; color:#16a34a;"><i class="fa-solid fa-clock"></i></div>
-                    <h3>Flexible Scheduling</h3><p>Plan your move around your academic timetable. 24/7 availability.</p>
-                </div>
-                <div class="pro-card" style="text-align:center;">
-                    <div style="background:#fef2f2; width:60px; height:60px; border-radius:15px; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; font-size:24px; color:#dc2626;"><i class="fa-solid fa-shield"></i></div>
-                    <h3>Verified Community</h3><p>Rest easy knowing your helper is a verified student from your university.</p>
+                    <button class="btn btn-secondary" onclick="navigate('explore')">Explore Marketplace</button>
                 </div>
             </div>
         </div>
 
         <div id="explore" class="page">
-            <h2 style="font-weight:800; margin-bottom:30px;">Marketplace</h2>
+            <h2 style="font-weight:800; margin-bottom:30px;">Active Requests</h2>
             <div id="task-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px;"></div>
         </div>
         
         <div id="post" class="page">
             <div class="pro-card" style="max-width: 800px; margin: 0 auto; padding:40px;">
-                <h2 style="margin-top:0; font-weight:800;">Create a Request</h2>
+                <h2 style="margin-top:0; font-weight:800;">Create Request</h2>
                 <div id="map"></div>
                 
                 <div style="display:flex; gap:20px;">
                     <div style="flex:1;">
-                        <label style="font-size:12px; font-weight:700;">Pick-up Point (Editable)</label>
+                        <label style="font-size:12px; font-weight:700;">Pick-up (Editable)</label>
                         <input type="text" id="p_from" class="input-pro" placeholder="Select on map or type">
                     </div>
                     <div style="flex:1;">
-                        <label style="font-size:12px; font-weight:700;">Drop-off Point (Editable)</label>
+                        <label style="font-size:12px; font-weight:700;">Drop-off (Editable)</label>
                         <input type="text" id="p_to" class="input-pro" placeholder="Select on map or type">
                     </div>
                 </div>
 
                 <div style="display:flex; gap:20px;">
-                    <div style="flex:1;"><label style="font-size:12px; font-weight:700;">Date & Time</label><input type="datetime-local" id="p_dt" class="input-pro"></div>
+                    <div style="flex:1;"><label style="font-size:12px; font-weight:700;">Moving Date</label><input type="datetime-local" id="p_dt" class="input-pro"></div>
                     <div style="flex:1;"><label style="font-size:12px; font-weight:700;">Reward Offer</label><input type="text" id="p_reward" class="input-pro" placeholder="e.g. $40"></div>
                 </div>
 
                 <div style="margin-bottom:15px;">
-                    <label style="font-size:12px; font-weight:700;">Elevator Information</label>
+                    <label style="font-size:12px; font-weight:700;">Elevator Available?</label>
                     <select id="p_elevator" class="input-pro">
-                        <option value="No">No Elevator (Stairs only)</option>
+                        <option value="No">No (Stairs only)</option>
                         <option value="Yes">Yes (Elevator available)</option>
                     </select>
                 </div>
 
                 <label style="font-size:12px; font-weight:700;">Items Description</label>
-                <textarea id="p_items" class="input-pro" rows="3" placeholder="List the items (e.g. 2 large boxes, 1 chair)..."></textarea>
+                <textarea id="p_items" class="input-pro" rows="3" placeholder="List your items..."></textarea>
                 
                 <div id="img-preview-container">
-                    <p style="font-size:12px; font-weight:700;">Thumbnail Preview:</p>
+                    <p style="font-size:12px; font-weight:700;">Image Preview:</p>
                     <img id="img-preview" src="">
                 </div>
 
-                <label style="font-size:12px; font-weight:700;">Photo (Optional)</label>
+                <label style="font-size:12px; font-weight:700;">Upload Photo (Optional)</label>
                 <input type="file" id="p_file" accept="image/*" class="input-pro" onchange="handleImagePreview(this)">
                 
                 <button class="btn btn-primary" style="width:100%; height:55px;" onclick="createTask()">Publish Request</button>
@@ -198,7 +186,7 @@
         <div id="prof" class="page">
             <div class="profile-grid">
                 <div class="pro-card">
-                    <h3><i class="fa-solid fa-user-gear"></i> Settings</h3>
+                    <h3><i class="fa-solid fa-user-gear"></i> Account Settings</h3>
                     <div id="profile-form-area"></div>
                 </div>
                 <div class="pro-card">
@@ -218,7 +206,7 @@
 
         window.onload = () => { renderNav(); navigate('home'); };
 
-        /* --- 导航控制 --- */
+        /* --- 导航与 UI 控制 --- */
         function renderNav() {
             const nav = document.getElementById('nav-menu');
             if (user) {
@@ -242,20 +230,21 @@
 
         function openModal(id) { document.getElementById(id).style.display = 'flex'; }
         function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-        function toggleAuth(isL) { document.getElementById('login-form').style.display=isL?'block':'none'; document.getElementById('reg-form').style.display=isL?'none':'block'; }
+        function toggleAuth(isL) { 
+            document.getElementById('login-form').style.display=isL?'block':'none'; 
+            document.getElementById('reg-form').style.display=isL?'none':'block'; 
+            document.getElementById('auth-title').innerText = isL ? 'Welcome Back' : 'Create Account';
+        }
         function showLoader(s) { document.getElementById('loader').style.display = s ? 'flex' : 'none'; }
         function requireAuth(target) { if (!user) openModal('auth-modal'); else navigate(target); }
 
-        /* --- 图片预览功能 --- */
+        /* --- 🌟 图片预览处理 --- */
         function handleImagePreview(input) {
             const preview = document.getElementById('img-preview');
             const container = document.getElementById('img-preview-container');
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    preview.src = e.target.result;
-                    container.style.display = 'block';
-                };
+                reader.onload = e => { preview.src = e.target.result; container.style.display = 'block'; };
                 reader.readAsDataURL(input.files[0]);
             }
         }
@@ -264,18 +253,25 @@
         async function sendCode(id) {
             const email = document.getElementById(id).value; if(!email) return alert("Enter email");
             showLoader(true);
-            try { await fetch(`${API}/auth/send-code`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email }) }); showLoader(false); alert("Verification code sent!"); } catch(e) { showLoader(false); }
+            try { 
+                await fetch(`${API}/auth/send-code`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email }) }); 
+                showLoader(false); alert("Verification code sent!"); 
+            } catch(e) { showLoader(false); }
         }
 
         async function handleRegister() {
             const pw = document.getElementById('r-pw').value;
-            if (pw !== document.getElementById('r-pw-confirm').value) return alert("Passwords match error.");
+            if (pw !== document.getElementById('r-pw-confirm').value) return alert("Passwords do not match.");
             
             const body = { 
-                student_id: document.getElementById('r-id').value, first_name: document.getElementById('r-first').value, 
-                given_name: document.getElementById('r-given').value, phone: document.getElementById('r-phone').value,
-                email: document.getElementById('r-email').value, code: document.getElementById('r-code').value, 
-                anonymous_name: document.getElementById('r-anon').value, password: pw 
+                student_id: document.getElementById('r-id').value, 
+                first_name: document.getElementById('r-first').value, 
+                given_name: document.getElementById('r-given').value, 
+                phone: document.getElementById('r-phone').value,
+                email: document.getElementById('r-email').value, 
+                code: document.getElementById('r-code').value, 
+                anonymous_name: document.getElementById('r-anon').value, 
+                password: pw 
             };
             
             showLoader(true);
@@ -283,7 +279,7 @@
                 const r = await fetch(`${API}/auth/register`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) }); 
                 const res = await r.json(); showLoader(false);
                 if(res.success) { alert("Registration done! Please login."); toggleAuth(true); } else alert(res.message);
-            } catch(e) { showLoader(false); }
+            } catch(e) { showLoader(false); alert("Server error."); }
         }
 
         async function handleLogin() {
@@ -295,9 +291,9 @@
             } catch(e) { showLoader(false); }
         }
 
-        function logout() { localStorage.removeItem('user'); location.reload(); }
+        function logout() { localStorage.clear(); location.reload(); }
 
-        /* --- 地图与地址 (🌟 手动编辑逻辑) --- */
+        /* --- 地图定位 (🌟 优化: 填充地址但可随意修改) --- */
         function initMap() {
             if(map) { map.invalidateSize(); return; }
             map = L.map('map').setView([-36.8509, 174.7645], 13);
@@ -317,7 +313,7 @@
             });
         }
 
-        /* --- 任务逻辑 --- */
+        /* --- 任务管理 --- */
         async function createTask() {
             const p_from = document.getElementById('p_from').value;
             const p_to = document.getElementById('p_to').value;
@@ -338,24 +334,24 @@
             try { 
                 const r = await fetch(`${API}/task/create`, { method: 'POST', body: fd });
                 const res = await r.json(); showLoader(false);
-                if(res.success) navigate('explore');
-            } catch (e) { showLoader(false); }
+                if(res.success) navigate('explore'); else alert(res.message);
+            } catch (e) { showLoader(false); alert("Post failed."); }
         }
 
         async function loadTasks() {
             try {
                 const r = await fetch(`${API}/task/all`); const d = await r.json(); allTasksData = d.list;
                 const container = document.getElementById('task-list');
-                if (!d.list || d.list.length === 0) return container.innerHTML = `<p style="grid-column:1/-1;text-align:center;padding:50px;color:var(--text-muted);">No active tasks found.</p>`;
+                if (!d.list || d.list.length === 0) return container.innerHTML = `<p style="grid-column:1/-1;text-align:center;padding:50px;color:var(--text-muted);">No active tasks.</p>`;
                 
                 container.innerHTML = d.list.map(t => `
                     <div class="pro-card">
-                        <img src="${t.img_url || DEFAULT_IMG}" style="width:100%; height:170px; object-fit:cover; border-radius:12px; margin-bottom:15px;">
+                        <img src="${t.img_url || DEFAULT_IMG}" style="width:100%; height:160px; object-fit:cover; border-radius:12px; margin-bottom:15px;">
                         <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
                             <span style="font-weight:800; color:var(--primary); font-size:18px;">${t.reward}</span>
                             <span class="status-tag">★ ${(t.rating_avg||5).toFixed(1)}</span>
                         </div>
-                        <h4 style="margin:0 0 15px 0;">${t.anonymous_name}'s Request</h4>
+                        <h4 style="margin:0 0 10px 0;">${t.anonymous_name}'s Request</h4>
                         <div style="display:flex; gap:10px;">
                             <button class="btn btn-secondary" style="flex:1" onclick="viewTaskDetail('${t.id}')">Details</button>
                             <button class="btn btn-primary" style="flex:1" onclick="requireAuth(() => acceptTask('${t.id}'))">Accept</button>
@@ -364,6 +360,7 @@
             } catch (e) {}
         }
 
+        /* --- 详情与留言 --- */
         function viewTaskDetail(taskId) {
             const t = allTasksData.find(x => x.id === taskId); if(!t) return;
             const comsHtml = (t.comments || []).map(c => `
@@ -374,24 +371,24 @@
 
             document.getElementById('detail-body-content').innerHTML = `
                 <div class="detail-left">
-                    <h2 style="color:var(--primary); margin-top:0;">${t.reward}</h2>
-                    <p style="font-size:14px; color:var(--text-muted); margin-bottom:20px;">Elevator: <b>${t.has_elevator || 'No'}</b></p>
-                    <img src="${t.img_url || DEFAULT_IMG}" style="width:100%; border-radius:15px; margin-bottom:20px;">
+                    <h2 style="color:var(--primary); margin-top:0; font-size:28px;">${t.reward}</h2>
+                    <p style="font-size:14px; color:var(--text-muted); margin-bottom:20px;">Elevator Info: <b>${t.has_elevator || 'No'}</b></p>
+                    <img src="${t.img_url || DEFAULT_IMG}" style="width:100%; border-radius:15px; margin-bottom:20px; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
                     <p><b>Items:</b> ${t.items_desc}</p>
                     <div style="background:white; padding:15px; border-radius:12px; border:1px solid var(--border);">
-                        <p style="margin:0 0 8px 0;"><i class="fa-solid fa-circle-dot" style="color:var(--primary);width:20px;"></i> ${t.from_addr}</p>
-                        <p style="margin:0;"><i class="fa-solid fa-location-dot" style="color:#ef4444;width:20px;"></i> ${t.to_addr}</p>
+                        <p style="margin:0 0 8px 0; font-size:13px;"><i class="fa-solid fa-circle-dot" style="color:var(--primary);width:20px;"></i> ${t.from_addr}</p>
+                        <p style="margin:0; font-size:13px;"><i class="fa-solid fa-location-dot" style="color:#ef4444;width:20px;"></i> ${t.to_addr}</p>
                     </div>
-                    <button class="btn btn-primary" style="width:100%; margin-top:25px;" onclick="acceptTask('${t.id}')">Accept This Task</button>
+                    <button class="btn btn-primary" style="width:100%; margin-top:25px;" onclick="acceptTask('${t.id}')">Accept Task</button>
                 </div>
                 <div class="detail-right">
                     <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:15px;">Discussion</h3>
-                    <div style="flex-grow:1; overflow-y:auto; padding-right:5px;">${comsHtml || '<p style="color:#94a3b8; font-size:13px; text-align:center; padding:40px 0;">No questions yet.</p>'}</div>
+                    <div style="flex-grow:1; overflow-y:auto; padding-right:5px;">${comsHtml || '<p style="color:#94a3b8; font-size:13px; text-align:center; padding:40px 0;">No messages yet.</p>'}</div>
                     ${user ? `
                     <div style="display:flex; gap:10px; padding-top:20px; border-top:1px solid #eee;">
                         <input type="text" id="com-txt" class="input-pro" style="margin-bottom:0;" placeholder="Ask...">
                         <button class="btn btn-primary" onclick="postComment('${t.id}')">Send</button>
-                    </div>` : '<p style="font-size:12px; text-align:center;">Please login to join the chat.</p>'}
+                    </div>` : '<p style="font-size:12px; text-align:center;">Login to join the discussion.</p>'}
                 </div>`;
             openModal('task-detail-modal');
         }
@@ -405,13 +402,13 @@
         }
 
         async function acceptTask(id) {
-            if(!confirm("Accept this task?")) return;
+            if(!confirm("Ready to help with this?")) return;
             showLoader(true); 
             await fetch(`${API}/task/workflow`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ task_id: id, status: 'assigned', helper_id: user.student_id }) }); 
             showLoader(false); navigate('prof'); closeModal('task-detail-modal');
         }
 
-        /* --- 个人资料逻辑 --- */
+        /* --- 个人中心 --- */
         async function loadProfile() {
             showLoader(true);
             try {
@@ -421,25 +418,25 @@
                 const tData = await tRes.json();
 
                 document.getElementById('profile-form-area').innerHTML = `
-                    <label>Nickname</label><input type="text" id="up-anon" value="${u.anonymous_name}" class="input-pro">
-                    <label>Phone</label><input type="text" id="up-phone" value="${u.phone || ''}" class="input-pro">
-                    <label>Email (Verification required for changes)</label>
+                    <label>Display Nickname</label><input type="text" id="up-anon" value="${u.anonymous_name}" class="input-pro">
+                    <label>Phone Number</label><input type="text" id="up-phone" value="${u.phone || ''}" class="input-pro">
+                    <label>Email Address</label>
                     <div style="display:flex; gap:10px;">
                         <input type="email" id="up-email" value="${u.email}" class="input-pro">
                         <button class="btn" style="background:#0f172a; color:white; height:48px;" onclick="sendCode('up-email')">Code</button>
                     </div>
-                    <label>Enter Code to Save (or 8888)</label>
-                    <input type="text" id="up-code" placeholder="6-digit code" class="input-pro">
-                    <button class="btn btn-primary" style="width:100%;" onclick="updateProfile()">Save All Changes</button>
+                    <label>Verify Code (or 8888)</label>
+                    <input type="text" id="up-code" placeholder="Enter code" class="input-pro">
+                    <button class="btn btn-primary" style="width:100%;" onclick="updateProfile()">Save Changes</button>
                 `;
 
                 const pub = tData.list.filter(x => x.publisher_id === u.student_id);
                 const acc = tData.list.filter(x => x.helper_id === u.student_id);
                 document.getElementById('profile-tasks-area').innerHTML = `
-                    <h4 style="margin:0 0 15px 0;">Published Tasks (${pub.length})</h4>
-                    ${pub.map(t => `<div class="task-item-sm"><span>${t.reward} - ${t.items_desc.substring(0,18)}..</span><span class="status-tag status-${t.status}">${t.status}</span></div>`).join('') || '<p style="color:#94a3b8; font-size:13px;">No published tasks.</p>'}
-                    <h4 style="margin:30px 0 15px 0;">Accepted Tasks (${acc.length})</h4>
-                    ${acc.map(t => `<div class="task-item-sm"><span>${t.reward} - ${t.items_desc.substring(0,18)}..</span><span class="status-tag status-${t.status}">${t.status}</span></div>`).join('') || '<p style="color:#94a3b8; font-size:13px;">No accepted tasks.</p>'}
+                    <h4 style="margin:0 0 15px 0;">Published (${pub.length})</h4>
+                    ${pub.map(t => `<div class="task-item-sm"><span>${t.reward} - ${t.items_desc.substring(0,18)}..</span><span class="status-tag status-${t.status}">${t.status}</span></div>`).join('') || '<p style="color:#94a3b8; font-size:13px;">None.</p>'}
+                    <h4 style="margin:30px 0 15px 0;">Accepted (${acc.length})</h4>
+                    ${acc.map(t => `<div class="task-item-sm"><span>${t.reward} - ${t.items_desc.substring(0,18)}..</span><span class="status-tag status-${t.status}">${t.status}</span></div>`).join('') || '<p style="color:#94a3b8; font-size:13px;">None.</p>'}
                 `;
                 showLoader(false);
             } catch(e) { showLoader(false); }
@@ -447,23 +444,20 @@
 
         async function updateProfile() {
             const updates = { anonymous_name: document.getElementById('up-anon').value, phone: document.getElementById('up-phone').value, email: document.getElementById('up-email').value };
-            const code = document.getElementById('up-code').value; if(!code) return alert("Enter code to confirm.");
+            const code = document.getElementById('up-code').value; if(!code) return alert("Code is required.");
             showLoader(true);
             try {
                 const r = await fetch(`${API}/user/update`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ student_id: user.student_id, email: updates.email, code, updates }) });
                 const res = await r.json(); showLoader(false);
-                if(res.success) { alert("Profile updated!"); user = res.user; localStorage.setItem('user', JSON.stringify(user)); renderNav(); loadProfile(); } else alert(res.message);
+                if(res.success) { alert("Updated!"); user = res.user; localStorage.setItem('user', JSON.stringify(user)); renderNav(); loadProfile(); } else alert(res.message);
             } catch(e) { showLoader(false); }
         }
 
         async function resetDatabase() {
-            const code = prompt("⚠️ Warning: This will delete ALL data. Enter Dev Code (8888) to confirm:");
+            const code = prompt("⚠️ Warning: Delete ALL data? Enter 8888 to confirm:");
             if (code !== '8888') return;
             showLoader(true);
-            try {
-                await fetch(`${API}/dev/reset`, { method: 'POST' });
-                showLoader(false); alert("Wipe successful!"); localStorage.clear(); location.reload();
-            } catch(e) { showLoader(false); }
+            try { await fetch(`${API}/dev/reset`, { method: 'POST' }); showLoader(false); localStorage.clear(); location.reload(); } catch(e) { showLoader(false); }
         }
     </script>
 </body>
