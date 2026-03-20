@@ -164,8 +164,14 @@
                 <p style="color: var(--text-muted); margin-bottom: 25px;">Set your route on the map and provide details below.</p>
                 <div id="map"></div>
                 <div style="display:flex; gap:16px;">
-                    <div style="flex:1;"><label class="upload-label"><i class="fa-solid fa-location-dot" style="color:#2563eb;"></i> Pick-up</label><input type="text" id="p_from" placeholder="Click on map" class="input-pro" readonly></div>
-                    <div style="flex:1;"><label class="upload-label"><i class="fa-solid fa-flag-checkered" style="color:#10b981;"></i> Drop-off</label><input type="text" id="p_to" placeholder="Click on map" class="input-pro" readonly></div>
+                    <div style="flex:1;">
+                        <label class="upload-label"><i class="fa-solid fa-location-dot" style="color:#2563eb;"></i> Pick-up</label>
+                        <input type="text" id="p_from" placeholder="Click map or type exact address" class="input-pro">
+                    </div>
+                    <div style="flex:1;">
+                        <label class="upload-label"><i class="fa-solid fa-flag-checkered" style="color:#10b981;"></i> Drop-off</label>
+                        <input type="text" id="p_to" placeholder="Click map or type exact address" class="input-pro">
+                    </div>
                 </div>
                 <div style="display:flex; gap:16px; margin-top: 10px;">
                     <div style="flex:1;"><label class="upload-label">Date & Time</label><input type="datetime-local" id="p_dt" class="input-pro"></div>
@@ -261,24 +267,32 @@
 
         function logout() { localStorage.removeItem('user'); location.reload(); }
 
-        /* --- 地图与反向地理编码 (逆向解析真实地址) --- */
+        /* --- 地图与反向地理编码 (带气泡提示，并支持用户手动编辑) --- */
         function initMap() {
             if(map) { map.invalidateSize(); return; }
             map = L.map('map').setView([-36.8509, 174.7645], 13);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
             
             map.on('click', async e => {
+                // 清理旧标记，最多保留两个点
                 if(markers.length >= 2) { markers.forEach(m => map.removeLayer(m)); markers = []; }
-                const marker = L.marker(e.latlng).addTo(map); markers.push(marker);
+                const marker = L.marker(e.latlng).addTo(map); 
+                markers.push(marker);
                 
                 const lat = e.latlng.lat; const lng = e.latlng.lng;
-                const inputField = markers.length === 1 ? document.getElementById('p_from') : document.getElementById('p_to');
+                const isPickup = markers.length === 1;
+                const inputField = isPickup ? document.getElementById('p_from') : document.getElementById('p_to');
+                const labelName = isPickup ? "Pick-up" : "Drop-off";
                 
+                // 显示加载状态，并开启地图气泡
                 inputField.value = "Fetching address..."; 
+                marker.bindPopup(`<b>${labelName}:</b><br>Fetching...`).openPopup();
 
                 try {
                     const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
                     const data = await response.json();
+                    
+                    let finalAddress = `${lat.toFixed(4)}, ${lng.toFixed(4)}`; // 默认兜底
                     
                     if (data && data.address) {
                         const road = data.address.road || data.address.pedestrian || '';
@@ -286,24 +300,36 @@
                         const city = data.address.city || data.address.town || '';
                         const shortAddress = [road, suburb, city].filter(Boolean).join(', ');
                         
-                        inputField.value = shortAddress || data.display_name;
-                    } else {
-                        inputField.value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-                    }
+                        finalAddress = shortAddress || data.display_name;
+                    } 
+                    
+                    // 将地址填入输入框，并更新地图气泡内容
+                    inputField.value = finalAddress;
+                    marker.setPopupContent(`<b>${labelName}:</b><br>${finalAddress}`).openPopup();
+                    
                 } catch (err) {
                     console.error("Address fetch failed:", err);
                     inputField.value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                    marker.setPopupContent(`<b>${labelName}:</b><br>${lat.toFixed(4)}, ${lng.toFixed(4)}`).openPopup();
                 }
             });
         }
 
         /* --- 任务管理 --- */
         async function createTask() {
+            const p_from = document.getElementById('p_from').value;
+            const p_to = document.getElementById('p_to').value;
+            
+            // 发单前校验
+            if (!p_from || !p_to || p_from.includes("Fetching") || p_to.includes("Fetching")) {
+                return alert("Please set proper Pick-up and Drop-off locations.");
+            }
+
             showLoader(true);
             const fd = new FormData();
             fd.append('publisher_id', user.student_id); fd.append('move_date', document.getElementById('p_dt').value.split('T')[0] || '');
-            fd.append('move_time', document.getElementById('p_dt').value.split('T')[1] || ''); fd.append('from_addr', document.getElementById('p_from').value);
-            fd.append('to_addr', document.getElementById('p_to').value); fd.append('reward', document.getElementById('p_reward').value || 'Negotiable');
+            fd.append('move_time', document.getElementById('p_dt').value.split('T')[1] || ''); fd.append('from_addr', p_from);
+            fd.append('to_addr', p_to); fd.append('reward', document.getElementById('p_reward').value || 'Negotiable');
             fd.append('items_desc', document.getElementById('p_items').value || 'Moving task');
             if(document.getElementById('p_file').files[0]) fd.append('task_image', document.getElementById('p_file').files[0]);
             try { await fetch(`${API}/task/create`, { method: 'POST', body: fd }); showLoader(false); navigate('explore'); } 
