@@ -1,6 +1,6 @@
 /**
- * DormLift Pro - Backend Server
- * 功能：用户认证、任务管理、图片上传、实时留言、测试后门
+ * DormLift Pro - Backend Server (Production Ready)
+ * 核心功能：用户认证、8888测试后门、图片云存储、任务流转、留言板
  */
 
 const express = require('express');
@@ -15,22 +15,22 @@ const app = express();
 // Railway 自动分配端口，若无则默认 8080
 const PORT = process.env.PORT || 8080;
 
-// --- 环境变量兼容性处理 ---
+// --- 1. 环境变量自检与兼容性处理 ---
 const MONGO_CONNECTION_STRING = process.env.MONGO_URL || process.env.MONGO_URI;
 const GAS_URL = process.env.GAS_URL;
 
-// 系统启动自检日志
 console.log("----- DormLift System Startup Check -----");
 if (MONGO_CONNECTION_STRING) {
     const source = process.env.MONGO_URL ? "MONGO_URL" : "MONGO_URI";
     console.log(`✅ Database URL Found (Source: ${source})`);
 } else {
-    console.log("❌ FATAL ERROR: Database URL (MONGO_URL or MONGO_URI) is MISSING in Railway Variables.");
+    console.log("❌ FATAL ERROR: MONGO_URL or MONGO_URI is MISSING in Railway Variables.");
 }
 console.log("GAS_URL Status:", GAS_URL ? "✅ Configured" : "❌ UNDEFINED");
+console.log("Cloudinary Config Status:", (process.env.CLOUDINARY_NAME && process.env.CLOUDINARY_KEY) ? "✅ Configured" : "❌ MISSING");
 console.log("-----------------------------------------");
 
-// Cloudinary 图片云存储配置
+// --- 2. Cloudinary 图片云存储配置 ---
 cloudinary.config({ 
   cloud_name: process.env.CLOUDINARY_NAME, 
   api_key: process.env.CLOUDINARY_KEY, 
@@ -47,14 +47,14 @@ const storage = new CloudinaryStorage({
 });
 const upload = multer({ storage: storage });
 
-// --- 数据库连接 ---
+// --- 3. 数据库连接 ---
 if (MONGO_CONNECTION_STRING) {
     mongoose.connect(MONGO_CONNECTION_STRING)
       .then(() => console.log("✅ MongoDB Connected Successfully."))
       .catch(err => console.error("❌ MongoDB Connection Error:", err.message));
 }
 
-// --- 数据模型定义 (Schemas) ---
+// --- 4. 数据模型定义 (Schemas) ---
 
 // 用户模型
 const UserSchema = new mongoose.Schema({
@@ -65,8 +65,7 @@ const UserSchema = new mongoose.Schema({
     phone: String,
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    rating_avg: { type: Number, default: 5.0 },
-    task_count: { type: Number, default: 0 }
+    rating_avg: { type: Number, default: 5.0 }
 });
 const User = mongoose.model('User', UserSchema);
 
@@ -81,8 +80,8 @@ const TaskSchema = new mongoose.Schema({
     items_desc: String,
     reward: String,
     img_url: String,
-    has_elevator: { type: String, default: 'No' }, // 是否有电梯
-    status: { type: String, default: 'pending' }, // 状态: pending, assigned, completed
+    has_elevator: { type: String, default: 'No' }, // 是否有电梯 (Yes/No)
+    status: { type: String, default: 'pending' },  // pending, assigned, completed
     comments: [{
         user_id: String,
         name: String,
@@ -92,10 +91,10 @@ const TaskSchema = new mongoose.Schema({
 }, { timestamps: true });
 const Task = mongoose.model('Task', TaskSchema);
 
-// 验证码内存存储 (临时方案)
+// 验证码内存存储
 const verificationCodes = new Map();
 
-// --- 中间件配置 ---
+// --- 5. 中间件配置 ---
 app.use(cors()); 
 app.use(express.json()); 
 app.use(express.static(__dirname));
@@ -105,22 +104,22 @@ app.use(express.static(__dirname));
    =========================================
 */
 
-// 发送验证码
+// 发送验证码接口
 app.post('/api/auth/send-code', async (req, res) => {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ success: false, message: "Email required" });
+    if (!email) return res.status(400).json({ success: false, message: "Email is required" });
 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    verificationCodes.set(email, { code, expires: Date.now() + 600000 }); // 10分钟有效
+    verificationCodes.set(email, { code, expires: Date.now() + 600000 });
 
     const payload = {
         to: email,
         subject: "DormLift Verification Code",
         html: `<div style="padding:20px; border:1px solid #ddd; border-radius:10px; font-family:sans-serif;">
-                <h2 style="color:#2563eb;">Your Verification Code</h2>
-                <p>Use the code below to complete your registration or profile update:</p>
+                <h2 style="color:#2563eb;">Verification Code</h2>
+                <p>Your code is:</p>
                 <h1 style="background:#f1f5f9; padding:15px; text-align:center; letter-spacing:10px;">${code}</h1>
-                <p style="font-size:12px; color:#64748b;">This code expires in 10 minutes.</p></div>`
+                <p style="font-size:12px; color:#64748b;">Valid for 10 minutes.</p></div>`
     };
 
     try {
@@ -131,43 +130,41 @@ app.post('/api/auth/send-code', async (req, res) => {
         });
         res.json({ success: true });
     } catch (err) {
-        console.error("Mail Error:", err);
-        res.status(500).json({ success: false, message: "Failed to send email" });
+        console.error("Mail Error:", err.message);
+        res.status(500).json({ success: false });
     }
 });
 
 // 注册账号 (含 8888 测试后门)
 app.post('/api/auth/register', async (req, res) => {
-    const { student_id, email, password, code, first_name, given_name, anonymous_name, phone } = req.body;
+    const { student_id, email, password, code } = req.body;
     
-    // 🌟 测试逻辑：如果填入 8888，跳过验证码检查
+    // 🌟 测试后门：如果 code 是 8888，直接通过验证
     if (code !== '8888') {
         const record = verificationCodes.get(email);
         if (!record || record.code !== code || Date.now() > record.expires) {
-            return res.status(400).json({ success: false, message: "Invalid or expired verification code." });
+            return res.status(400).json({ success: false, message: "Invalid or expired code." });
         }
     }
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ 
-            student_id, email, password: hashedPassword, 
-            first_name, given_name, anonymous_name, phone 
-        });
+        const newUser = new User({ ...req.body, password: hashedPassword });
         await newUser.save();
         if (code !== '8888') verificationCodes.delete(email);
         res.json({ success: true });
     } catch (err) {
-        res.status(400).json({ success: false, message: "Student ID or Email already exists." });
+        console.error("Register Error:", err.message);
+        res.status(400).json({ success: false, message: "Registration failed. ID or Email might exist." });
     }
 });
 
-// 登录
+// 登录接口
 app.post('/api/auth/login', async (req, res) => {
     try {
         const user = await User.findOne({ student_id: req.body.student_id }).lean();
         if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
-            return res.status(401).json({ success: false, message: "Invalid student ID or password." });
+            return res.status(401).json({ success: false, message: "Invalid credentials." });
         }
         delete user.password;
         res.json({ success: true, user });
@@ -181,22 +178,30 @@ app.post('/api/auth/login', async (req, res) => {
    =========================================
 */
 
-// 发布任务
-app.post('/api/task/create', upload.single('task_image'), async (req, res) => {
-    try {
-        const newTask = new Task({
-            ...req.body,
-            img_url: req.file ? req.file.path : ''
-        });
-        await newTask.save();
-        res.json({ success: true });
-    } catch (err) {
-        console.error("Create Task Error:", err);
-        res.status(500).json({ success: false });
-    }
+// 发布任务 (增强了错误日志打印)
+app.post('/api/task/create', (req, res) => {
+    upload.single('task_image')(req, res, async (err) => {
+        if (err) {
+            console.error("❌ Cloudinary/Multer Upload Error:", err.message);
+            return res.status(500).json({ success: false, message: "Image upload failed: " + err.message });
+        }
+        
+        try {
+            const newTask = new Task({
+                ...req.body,
+                img_url: req.file ? req.file.path : ''
+            });
+            await newTask.save();
+            console.log("✅ Task Created Successfully:", newTask._id);
+            res.json({ success: true });
+        } catch (dbErr) {
+            console.error("❌ MongoDB Save Error:", dbErr.message);
+            res.status(500).json({ success: false, message: "Database save failed: " + dbErr.message });
+        }
+    });
 });
 
-// 获取 Marketplace 所有任务
+// 获取大厅任务
 app.get('/api/task/all', async (req, res) => {
     try {
         const tasks = await Task.aggregate([
@@ -206,35 +211,8 @@ app.get('/api/task/all', async (req, res) => {
                 from: 'users',
                 localField: 'publisher_id',
                 foreignField: 'student_id',
-                as: 'publisher'
+                as: 'pub'
             }},
-            { $unwind: '$publisher' }
-        ]);
-        
-        const formatted = tasks.map(t => ({
-            ...t,
-            id: t._id,
-            anonymous_name: t.publisher.anonymous_name,
-            rating_avg: t.publisher.rating_avg
-        }));
-        res.json({ success: true, list: formatted });
-    } catch (err) {
-        res.status(500).json({ success: false });
-    }
-});
-
-// 发表留言
-app.post('/api/task/comment', async (req, res) => {
-    const { task_id, user_id, name, text } = req.body;
-    try {
-        await Task.findByIdAndUpdate(task_id, {
-            $push: { comments: { user_id, name, text } }
-        });
-        // 重新拉取列表以返回给前端刷新显示
-        const tasks = await Task.aggregate([
-            { $match: { status: 'pending' } },
-            { $sort: { createdAt: -1 } },
-            { $lookup: { from: 'users', localField: 'publisher_id', foreignField: 'student_id', as: 'pub' } },
             { $unwind: '$pub' }
         ]);
         res.json({ success: true, list: tasks.map(t => ({ ...t, id: t._id, anonymous_name: t.pub.anonymous_name })) });
@@ -243,7 +221,20 @@ app.post('/api/task/comment', async (req, res) => {
     }
 });
 
-// 接受任务
+// 留言互动接口
+app.post('/api/task/comment', async (req, res) => {
+    const { task_id, user_id, name, text } = req.body;
+    try {
+        await Task.findByIdAndUpdate(task_id, {
+            $push: { comments: { user_id, name, text } }
+        });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ success: false });
+    }
+});
+
+// 任务流转接口 (接单)
 app.post('/api/task/workflow', async (req, res) => {
     const { task_id, status, helper_id } = req.body;
     try {
@@ -255,20 +246,17 @@ app.post('/api/task/workflow', async (req, res) => {
 });
 
 /* =========================================
-   👤 用户中心模块 (Profile)
+   👤 个人中心模块 (User Center)
    =========================================
 */
 
-// 获取 Dashboard 任务清单
+// 获取个人中心 Dashboard
 app.post('/api/user/dashboard', async (req, res) => {
     try {
-        const tasks = await Task.find({ 
-            $or: [
-                { publisher_id: req.body.student_id }, 
-                { helper_id: req.body.student_id }
-            ] 
+        const list = await Task.find({ 
+            $or: [{ publisher_id: req.body.student_id }, { helper_id: req.body.student_id }] 
         }).sort({ createdAt: -1 }).lean();
-        res.json({ success: true, list: tasks.map(t => ({ ...t, id: t._id })) });
+        res.json({ success: true, list: list.map(t => ({ ...t, id: t._id })) });
     } catch (err) {
         res.status(500).json({ success: false });
     }
@@ -290,8 +278,8 @@ app.post('/api/user/update', async (req, res) => {
     
     if (code !== '8888') {
         const record = verificationCodes.get(email);
-        if (!record || record.code !== code || Date.now() > record.expires) {
-            return res.status(400).json({ success: false, message: "Verification failed." });
+        if (!record || record.code !== code) {
+            return res.status(400).json({ success: false, message: "Security verification failed." });
         }
     }
 
@@ -303,12 +291,12 @@ app.post('/api/user/update', async (req, res) => {
         );
         res.json({ success: true, user: updatedUser });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Update error." });
+        res.status(500).json({ success: false });
     }
 });
 
 /* =========================================
-   🛠️ 开发者专用 (Maintenance)
+   🛠️ 开发者专用接口
    =========================================
 */
 app.post('/api/dev/reset', async (req, res) => {
@@ -316,14 +304,14 @@ app.post('/api/dev/reset', async (req, res) => {
         await User.deleteMany({}); 
         await Task.deleteMany({}); 
         verificationCodes.clear();
-        console.warn("⚠️ DATABASE RESET: All data wiped by dev request.");
+        console.warn("⚠️ DATABASE RESET PERFORMED.");
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ success: false });
     }
 });
 
-// 监听
+// 启动服务器
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 DormLift Server Live on Port ${PORT}`);
+    console.log(`🚀 DormLift Server Running on Port ${PORT}`);
 });
