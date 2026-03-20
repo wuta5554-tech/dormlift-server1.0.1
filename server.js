@@ -1,6 +1,3 @@
-// 如果在本地测试，请取消下面这一行的注释并安装 dotenv: npm install dotenv
-// require('dotenv').config(); 
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -13,17 +10,21 @@ const app = express();
 // Railway 自动分配端口，若无则默认 8080
 const PORT = process.env.PORT || 8080;
 
-// --- 环境变量配置检查 ---
-const MONGO_URL = process.env.MONGO_URL;
+// --- 环境变量兼容性处理 ---
+// 自动匹配 MONGO_URL 或 MONGO_URI，解决变量名不一致导致的连接失败
+const MONGO_CONNECTION_STRING = process.env.MONGO_URL || process.env.MONGO_URI;
 const GAS_URL = process.env.GAS_URL;
 
-// 打印环境变量状态（用于排查 Railway 配置问题）
 console.log("----- System Startup Check -----");
-console.log("MONGO_URL Status:", MONGO_URL ? "✅ Configured" : "❌ UNDEFINED");
+if (MONGO_CONNECTION_STRING) {
+    console.log("✅ Database URL Found (Source: " + (process.env.MONGO_URL ? "MONGO_URL" : "MONGO_URI") + ")");
+} else {
+    console.log("❌ FATAL ERROR: Database URL (MONGO_URL or MONGO_URI) is MISSING in Railway Variables.");
+}
 console.log("GAS_URL Status:", GAS_URL ? "✅ Configured" : "❌ UNDEFINED");
 console.log("--------------------------------");
 
-// Cloudinary 图片库配置
+// Cloudinary 图片存储配置
 cloudinary.config({ 
   cloud_name: process.env.CLOUDINARY_NAME, 
   api_key: process.env.CLOUDINARY_KEY, 
@@ -40,16 +41,14 @@ const storage = new CloudinaryStorage({
 });
 const upload = multer({ storage: storage });
 
-// --- 数据库连接 ---
-if (MONGO_URL) {
-    mongoose.connect(MONGO_URL)
+// --- 数据库连接逻辑 ---
+if (MONGO_CONNECTION_STRING) {
+    mongoose.connect(MONGO_CONNECTION_STRING)
       .then(() => console.log("✅ MongoDB Connected Successfully."))
       .catch(err => console.error("❌ MongoDB Connection Error:", err.message));
-} else {
-    console.error("❌ FATAL ERROR: MONGO_URL is not defined in environment variables.");
 }
 
-// --- 数据模型 (Models) ---
+// --- 数据模型定义 (Models) ---
 
 // 用户模型
 const UserSchema = new mongoose.Schema({
@@ -76,7 +75,7 @@ const TaskSchema = new mongoose.Schema({
     items_desc: String,
     reward: String,
     img_url: String,
-    status: { type: String, default: 'pending' }, // pending, assigned, completed
+    status: { type: String, default: 'pending' }, // 状态流转: pending -> assigned -> completed
     comments: [{
         user_id: String,
         name: String,
@@ -86,38 +85,38 @@ const TaskSchema = new mongoose.Schema({
 }, { timestamps: true });
 const Task = mongoose.model('Task', TaskSchema);
 
-// 验证码内存存储 (Key: Email, Value: {code, expires})
+// 验证码内存存储
 const verificationCodes = new Map();
 
-// --- 中间件 ---
+// --- 中间件配置 ---
 app.use(cors()); 
 app.use(express.json()); 
 app.use(express.static(__dirname));
 
 /* =========================================
-   🔑 认证模块 (Authentication)
+   🔑 认证模块 (Auth)
    =========================================
 */
 
-// 发送验证码 (注册及更新通用)
+// 发送验证码
 app.post('/api/auth/send-code', async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ success: false, message: "Email required" });
 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    verificationCodes.set(email, { code, expires: Date.now() + 600000 }); // 10分钟有效
+    verificationCodes.set(email, { code, expires: Date.now() + 600000 });
 
     const payload = {
         to: email,
         subject: "DormLift Verification Code",
         html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; max-width: 450px;">
-                <h2 style="color: #2563eb;">Verify Your Identity</h2>
-                <p>Use the following code to complete your action. This code will expire in 10 minutes.</p>
-                <div style="background: #f8fafc; padding: 20px; text-align: center; font-size: 32px; font-weight: 800; letter-spacing: 10px; color: #0f172a; border-radius: 8px;">
+                <h2 style="color: #2563eb;">Verification Code</h2>
+                <p>Your security code for DormLift is:</p>
+                <h1 style="background: #f8fafc; padding: 20px; text-align: center; font-size: 32px; letter-spacing: 10px; color: #0f172a; border-radius: 8px;">
                     ${code}
-                </div>
-                <p style="font-size: 12px; color: #64748b; margin-top: 20px;">If you didn't request this, please ignore this email.</p>
+                </h1>
+                <p style="font-size: 12px; color: #64748b; margin-top: 20px;">Code expires in 10 minutes.</p>
             </div>`
     };
 
@@ -127,20 +126,19 @@ app.post('/api/auth/send-code', async (req, res) => {
             headers: { 'Content-Type': 'application/json' }, 
             body: JSON.stringify(payload) 
         });
-        res.json({ success: true, message: "Code sent successfully" });
+        res.json({ success: true });
     } catch (err) {
-        console.error("Mail Error:", err);
-        res.status(500).json({ success: false, message: "Failed to send email" });
+        res.status(500).json({ success: false });
     }
 });
 
-// 注册账号
+// 注册
 app.post('/api/auth/register', async (req, res) => {
     const { student_id, email, password, code, first_name, given_name, anonymous_name, phone } = req.body;
     
     const record = verificationCodes.get(email);
     if (!record || record.code !== code || Date.now() > record.expires) {
-        return res.status(400).json({ success: false, message: "Invalid or expired verification code." });
+        return res.status(400).json({ success: false, message: "Invalid or expired code." });
     }
 
     try {
@@ -153,7 +151,7 @@ app.post('/api/auth/register', async (req, res) => {
         verificationCodes.delete(email);
         res.json({ success: true });
     } catch (err) {
-        res.status(400).json({ success: false, message: "Student ID or Email already exists." });
+        res.status(400).json({ success: false, message: "ID or Email already exists." });
     }
 });
 
@@ -162,7 +160,7 @@ app.post('/api/auth/login', async (req, res) => {
     try {
         const user = await User.findOne({ student_id: req.body.student_id }).lean();
         if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
-            return res.status(401).json({ success: false, message: "Invalid ID or password." });
+            return res.status(401).json({ success: false, message: "Invalid credentials." });
         }
         delete user.password;
         res.json({ success: true, user });
@@ -176,7 +174,7 @@ app.post('/api/auth/login', async (req, res) => {
    =========================================
 */
 
-// 创建任务
+// 发布任务 (含图片上传)
 app.post('/api/task/create', upload.single('task_image'), async (req, res) => {
     try {
         const newTask = new Task({
@@ -190,7 +188,7 @@ app.post('/api/task/create', upload.single('task_image'), async (req, res) => {
     }
 });
 
-// 获取大厅所有任务 (聚合发布者信息)
+// 获取所有待接单任务
 app.get('/api/task/all', async (req, res) => {
     try {
         const tasks = await Task.aggregate([
@@ -217,14 +215,14 @@ app.get('/api/task/all', async (req, res) => {
     }
 });
 
-// 发表评论
+// 留言互动
 app.post('/api/task/comment', async (req, res) => {
     const { task_id, user_id, name, text } = req.body;
     try {
         await Task.findByIdAndUpdate(task_id, {
             $push: { comments: { user_id, name, text } }
         });
-        // 返回更新后的任务列表
+        // 重新获取任务列表以实时刷新留言
         const tasks = await Task.aggregate([
             { $match: { status: 'pending' } },
             { $sort: { createdAt: -1 } },
@@ -237,7 +235,7 @@ app.post('/api/task/comment', async (req, res) => {
     }
 });
 
-// 接受任务 (状态流转)
+// 状态更新 (接单)
 app.post('/api/task/workflow', async (req, res) => {
     const { task_id, status, helper_id } = req.body;
     try {
@@ -250,11 +248,11 @@ app.post('/api/task/workflow', async (req, res) => {
 });
 
 /* =========================================
-   👤 用户资料模块 (User Profile)
+   👤 用户资料与 Dashboard
    =========================================
 */
 
-// 获取个人仪表盘数据 (我发布的和我接受的)
+// 获取用户相关的任务 (我发的和我接的)
 app.post('/api/user/dashboard', async (req, res) => {
     try {
         const tasks = await Task.find({ 
@@ -269,7 +267,7 @@ app.post('/api/user/dashboard', async (req, res) => {
     }
 });
 
-// 获取基础资料
+// 获取个人资料
 app.post('/api/user/profile', async (req, res) => {
     try {
         const user = await User.findOne({ student_id: req.body.student_id }, '-password').lean();
@@ -279,13 +277,13 @@ app.post('/api/user/profile', async (req, res) => {
     }
 });
 
-// 更新个人资料 (需邮箱验证)
+// 安全更新资料 (需 Code 验证)
 app.post('/api/user/update', async (req, res) => {
     const { student_id, email, code, updates } = req.body;
     const record = verificationCodes.get(email);
     
     if (!record || record.code !== code || Date.now() > record.expires) {
-        return res.status(400).json({ success: false, message: "Verification failed." });
+        return res.status(400).json({ success: false, message: "Security verification failed." });
     }
 
     try {
@@ -297,12 +295,12 @@ app.post('/api/user/update', async (req, res) => {
         verificationCodes.delete(email);
         res.json({ success: true, user: updatedUser });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Update error." });
+        res.status(500).json({ success: false });
     }
 });
 
 /* =========================================
-   🛠️ 开发者专用 (Dev Reset)
+   🛠️ 开发者重置接口 (Dev Reset)
    =========================================
 */
 app.post('/api/dev/reset', async (req, res) => {
@@ -310,15 +308,14 @@ app.post('/api/dev/reset', async (req, res) => {
         await User.deleteMany({}); 
         await Task.deleteMany({}); 
         verificationCodes.clear();
-        console.warn("⚠️ DATABASE RESET PERFORMED.");
-        res.json({ success: true, message: "All data cleared." });
+        console.warn("⚠️ [DATABASE RESET] All data wiped by dev request.");
+        res.json({ success: true });
     } catch (err) {
         res.status(500).json({ success: false });
     }
 });
 
-// 启动服务
+// 监听端口
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 DormLift Server Online`);
-    console.log(`📍 Port: ${PORT}`);
+    console.log(`🚀 DormLift Server is LIVE on port ${PORT}`);
 });
