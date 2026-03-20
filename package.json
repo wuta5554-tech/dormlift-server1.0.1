@@ -1,13 +1,13 @@
 {
   "name": "dormlift-pro",
-  "version": "12.1.0",
+  "version": "12.2.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
-    "cloudinary": "^2.0.0",
+    "cloudinary": "^1.37.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "mongoose": "^8.2.0",
