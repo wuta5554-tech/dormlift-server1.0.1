@@ -1,179 +1,176 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const mongoose = require('mongoose');
 const cors = require('cors');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const path = require('path');
 const bcrypt = require('bcryptjs');
-const https = require('https');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// 💡 关键：改名以强制更新数据库结构，解决“发布后大厅空白”的问题
-const DB_PATH = path.join(__dirname, 'dormlift_v10_final.db');
+// --- 1. 数据库连接 (使用你提供的 MongoDB Atlas 地址) ---
+// 建议在 Railway 的 Variables 中设置 MONGO_URI 环境变量
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://wuta5554_db_user:WHT275024WHT!@free.lnciszk.mongodb.net/Dormlift?appName=Free";
 
-// --- 1. Cloudinary 云存储配置 ---
+mongoose.connect(MONGO_URI)
+    .then(() => console.log('🚀 MongoDB 云数据库连接成功！数据现在是永久性的了。'))
+    .catch(err => console.error('❌ 数据库连接失败:', err));
+
+// --- 2. 数据模型定义 (Schema) ---
+
+// 用户模型 (完整包含 10 个字段)
+const userSchema = new mongoose.Schema({
+    student_id: { type: String, unique: true, required: true },
+    password: { type: String, required: true },
+    email: { type: String, lowercase: true, trim: true },
+    school_name: String,
+    first_name: String,
+    given_name: String,
+    gender: String,
+    phone: String,
+    anonymous_name: String,
+    rating_avg: { type: Number, default: 5.0 },
+    task_count: { type: Number, default: 0 }
+});
+const User = mongoose.model('User', userSchema);
+
+// 任务模型
+const taskSchema = new mongoose.Schema({
+    publisher_id: String,
+    helper_id: String,
+    move_date: String,
+    move_time: String,
+    from_addr: String,
+    to_addr: String,
+    items_desc: String,
+    reward: String,
+    img_url: String, // 存储为图片 URL 的 JSON 字符串
+    status: { type: String, default: 'pending' },
+    created_at: { type: Date, default: Date.now }
+});
+const Task = mongoose.model('Task', taskSchema);
+
+// --- 3. Cloudinary 云存储配置 ---
 cloudinary.config({ 
-  cloud_name: 'ddlbhkmwb', 
-  api_key: '659513524184184', 
-  api_secret: 'iRTD1m-vPfaIu0DQ0uLUf4LUyLU' 
+    cloud_name: 'ddlbhkmwb', 
+    api_key: '659513524184184', 
+    api_secret: 'iRTD1m-vPfaIu0DQ0uLUf4LUyLU' 
 });
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'dormlift_production',
-    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
-    public_id: (req, file) => Date.now() + '-' + file.originalname.split('.')[0],
-  },
+const upload = multer({ 
+    storage: new CloudinaryStorage({ 
+        cloudinary, 
+        params: { 
+            folder: 'dormlift_production', 
+            allowed_formats: ['jpg', 'png', 'jpeg', 'webp'] 
+        } 
+    }) 
 });
-const upload = multer({ storage: storage });
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// --- 2. 数据库初始化 (含 10 字段用户表及联查支持) ---
-const db = new sqlite3.Database(DB_PATH, () => {
-    console.log('✅ Database V10 Final Connected');
-    db.serialize(() => {
-        // 验证码表
-        db.run(`CREATE TABLE IF NOT EXISTS verify_codes (email TEXT PRIMARY KEY, code TEXT, expire_at INTEGER)`);
-        
-        // 用户表 (补全 10 字段)
-        db.run(`CREATE TABLE IF NOT EXISTS users (
-            student_id TEXT PRIMARY KEY, school_name TEXT, first_name TEXT, given_name TEXT, 
-            gender TEXT, anonymous_name TEXT, phone TEXT, email TEXT, password TEXT,
-            rating_avg REAL DEFAULT 5.0, task_count INTEGER DEFAULT 0
-        )`);
+// --- 4. API 接口逻辑 ---
 
-        // 任务表 (含多图存储字段)
-        db.run(`CREATE TABLE IF NOT EXISTS tasks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, publisher_id TEXT, helper_id TEXT,
-            move_date TEXT, move_time TEXT, from_addr TEXT, to_addr TEXT, 
-            items_desc TEXT, reward TEXT, has_elevator INTEGER, load_weight TEXT, 
-            img_url TEXT, status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )`);
-
-        // 评价表
-        db.run(`CREATE TABLE IF NOT EXISTS reviews (
-            id INTEGER PRIMARY KEY AUTOINCREMENT, task_id INTEGER, from_id TEXT, to_id TEXT, score INTEGER, comment TEXT
-        )`);
-    });
-});
-
-// --- 3. 邮件核心 (Google Apps Script 转发) ---
-function sendMail(email, code) {
-    const data = JSON.stringify({ to: email, subject: 'DormLift Verification', html: `Your code: <b>${code}</b>. Valid for 5 mins.` });
-    const req = https.request('https://script.google.com/macros/s/AKfycbzAE3Vyi5B1sdNM--P89E7UDO1VF03lmehb0S6N0tHlvtpvdadDGfyM7jswaUB-RZhU/exec', 
-    { method: 'POST', headers: {'Content-Type': 'text/plain'} });
-    req.on('error', (e) => console.error("Mail Error:", e.message));
-    req.write(data); req.end();
-}
-
-app.post('/api/auth/send-code', (req, res) => {
-    const email = (req.body.email || "").trim().toLowerCase();
-    if (!email) return res.status(400).json({ success: false, message: 'Email required' });
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    db.run(`INSERT OR REPLACE INTO verify_codes VALUES (?, ?, ?)`, [email, code, Date.now() + 300000], (err) => {
-        if (err) return res.status(500).json({ success: false });
-        sendMail(email, code);
-        console.log(`🔑 Verification for ${email}: ${code}`);
-        res.json({ success: true });
-    });
-});
-
-// --- 4. 身份验证 API (强壮版双模登录) ---
-
-// 注册：全量字段录入
+// [注册] 10 字段全量入库
 app.post('/api/auth/register', async (req, res) => {
-    let { student_id, email, code, password, school_name, first_name, given_name, gender, anonymous_name, phone } = req.body;
-    const cleanEmail = (email || "").trim().toLowerCase();
-    const cleanID = (student_id || "").trim();
-
-    db.get(`SELECT * FROM verify_codes WHERE email = ?`, [cleanEmail], async (err, row) => {
-        if (!row || row.code !== code || Date.now() > row.expire_at) {
-            return res.status(400).json({ success: false, message: 'Invalid or expired code.' });
-        }
+    try {
+        const { password, student_id, ...rest } = req.body;
         const hashed = await bcrypt.hash(password, 10);
-        const sql = `INSERT INTO users (student_id, school_name, first_name, given_name, gender, anonymous_name, phone, email, password) VALUES (?,?,?,?,?,?,?,?,?)`;
-        db.run(sql, [cleanID, school_name, first_name, given_name, gender, anonymous_name, phone, cleanEmail, hashed], (err) => {
-            if (err) return res.status(400).json({ success: false, message: 'Account or Email already exists.' });
-            res.json({ success: true });
+        const newUser = new User({ 
+            student_id: (student_id || "").trim(),
+            password: hashed,
+            ...rest 
         });
-    });
-});
-
-// 登录：对齐前端模式
-app.post('/api/auth/login', (req, res) => {
-    const { mode, student_id, email, password, code } = req.body;
-    if (mode === 'email') {
-        const cleanEmail = (email || "").trim().toLowerCase();
-        db.get(`SELECT * FROM verify_codes WHERE email = ?`, [cleanEmail], (err, vRow) => {
-            if (!vRow || vRow.code !== code || Date.now() > vRow.expire_at) return res.status(400).json({ success: false, message: 'Invalid login code.' });
-            db.get(`SELECT * FROM users WHERE email = ?`, [cleanEmail], (err, user) => {
-                if (!user) return res.status(400).json({ success: false, message: 'Email not registered.' });
-                delete user.password; res.json({ success: true, user });
-            });
-        });
-    } else {
-        const cleanID = (student_id || "").trim();
-        if(!cleanID) return res.status(400).json({ success: false, message: 'Student ID required.' });
-        db.get(`SELECT * FROM users WHERE student_id = ?`, [cleanID], async (err, user) => {
-            if (!user || !(await bcrypt.compare(password, user.password))) {
-                return res.status(400).json({ success: false, message: 'Wrong ID or Password.' });
-            }
-            delete user.password; res.json({ success: true, user });
-        });
+        await newUser.save();
+        res.json({ success: true });
+    } catch (err) {
+        console.error("注册失败:", err);
+        res.status(400).json({ success: false, message: "Registration Failed (ID exists?)" });
     }
 });
 
-// --- 5. 任务流转 API (支持多图与联查) ---
+// [登录] 兼容性保护
+app.post('/api/auth/login', async (req, res) => {
+    try {
+        const sid = (req.body.student_id || "").trim();
+        const user = await User.findOne({ student_id: sid });
+        if (user && await bcrypt.compare(req.body.password, user.password)) {
+            const u = user.toObject();
+            delete u.password;
+            res.json({ success: true, user: u });
+        } else {
+            res.status(400).json({ success: false, message: "Invalid ID or Password" });
+        }
+    } catch (e) {
+        res.status(500).json({ success: false });
+    }
+});
 
-app.post('/api/task/create', upload.array('task_images', 5), (req, res) => {
-    const { publisher_id, move_date, move_time, from_addr, to_addr, items_desc, reward, has_elevator, load_weight } = req.body;
-    const imgUrls = JSON.stringify(req.files ? req.files.map(f => f.path) : []);
-    const sql = `INSERT INTO tasks (publisher_id, move_date, move_time, from_addr, to_addr, items_desc, reward, has_elevator, load_weight, img_url) VALUES (?,?,?,?,?,?,?,?,?,?)`;
-    db.run(sql, [publisher_id, move_date, move_time, from_addr, to_addr, items_desc, reward, has_elevator, load_weight, imgUrls], (err) => {
-        if (err) return res.status(500).json({ success: false });
+// [发布任务] 多图支持
+app.post('/api/task/create', upload.array('task_images', 5), async (req, res) => {
+    try {
+        const imgUrls = JSON.stringify(req.files ? req.files.map(f => f.path) : []);
+        const newTask = new Task({ ...req.body, img_url: imgUrls });
+        await newTask.save();
         res.json({ success: true });
-    });
+    } catch (e) {
+        console.error("发布失败:", e);
+        res.status(500).json({ success: false });
+    }
 });
 
-app.get('/api/task/all', (req, res) => {
-    // 💡 核心修复：JOIN users 表，确保拿到 rating_avg 且不会因为字段缺失报错
-    const sql = `SELECT t.*, u.anonymous_name as pub_name, u.rating_avg 
-                 FROM tasks t JOIN users u ON t.publisher_id = u.student_id 
-                 WHERE t.status = 'pending' ORDER BY t.id DESC`;
-    db.all(sql, [], (err, rows) => res.json({ success: true, list: rows || [] }));
+// [任务大厅] 实时获取
+app.get('/api/task/all', async (req, res) => {
+    try {
+        const list = await Task.find({ status: 'pending' }).sort({ created_at: -1 });
+        res.json({ success: true, list });
+    } catch (e) {
+        res.json({ success: false, list: [] });
+    }
 });
 
-app.post('/api/task/workflow', (req, res) => {
-    const { task_id, status, helper_id } = req.body;
-    let sql = helper_id ? `UPDATE tasks SET status = ?, helper_id = ? WHERE id = ?` : `UPDATE tasks SET status = ? WHERE id = ?`;
-    let params = helper_id ? [status, helper_id, task_id] : [status, task_id];
-    db.run(sql, params, (err) => res.json({ success: !err }));
+// [个人资料] 实时获取最新字段
+app.post('/api/user/profile', async (req, res) => {
+    try {
+        const user = await User.findOne({ student_id: req.body.student_id });
+        if (user) {
+            const u = user.toObject();
+            delete u.password;
+            res.json({ success: true, user: u });
+        } else {
+            res.status(404).json({ success: false });
+        }
+    } catch (e) {
+        res.status(500).json({ success: false });
+    }
 });
 
-// --- 6. 用户资料与看板 ---
-
-app.post('/api/user/profile', (req, res) => {
-    db.get(`SELECT * FROM users WHERE student_id = ?`, [req.body.student_id], (err, row) => {
-        if (row) delete row.password;
-        res.json({ success: true, user: row });
-    });
+// [仪表盘]
+app.post('/api/user/dashboard', async (req, res) => {
+    try {
+        const sid = req.body.student_id;
+        const list = await Task.find({ $or: [{ publisher_id: sid }, { helper_id: sid }] }).sort({ created_at: -1 });
+        res.json({ success: true, list });
+    } catch (e) {
+        res.json({ success: false, list: [] });
+    }
 });
 
-app.post('/api/user/dashboard', (req, res) => {
-    // 💡 联查以确保看板能显示发布者的名字
-    const sql = `SELECT t.*, u.anonymous_name as pub_name 
-                 FROM tasks t JOIN users u ON t.publisher_id = u.student_id 
-                 WHERE t.publisher_id = ? OR t.helper_id = ? ORDER BY t.id DESC`;
-    db.all(sql, [req.body.student_id, req.body.student_id], (err, rows) => {
-        res.json({ success: true, list: rows || [] });
-    });
+// [工作流更新]
+app.post('/api/task/workflow', async (req, res) => {
+    try {
+        const { task_id, status, helper_id } = req.body;
+        const updateData = { status };
+        if (helper_id) updateData.helper_id = helper_id;
+        await Task.findByIdAndUpdate(task_id, updateData);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ success: false });
+    }
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log(`🚀 DormLift Final Engine V10 running on ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`✅ Master Engine running on port ${PORT}`));
