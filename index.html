@@ -44,17 +44,17 @@
         .input-pro { width: 100%; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 12px; margin-bottom: 16px; font-size: 15px; outline: none; transition: 0.2s; background: #f8fafc; box-sizing: border-box; font-family: inherit; }
         .input-pro:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
         .btn { padding: 14px 24px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
         .btn-secondary { background: #f1f5f9; color: var(--text-main); }
         
         /* --- 弹窗设计 --- */
         .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); z-index: 99999; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .detail-box { background: white; border-radius: 24px; width: 100%; max-width: 900px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+        .detail-box { background: white; border-radius: 24px; width: 100%; max-width: 900px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; position: relative; box-shadow: 0 25px 50px rgba(0,0,0,0.25); }
         .detail-body { display: flex; flex-wrap: wrap; height: 100%; overflow-y: auto; }
         .detail-left { flex: 1.2; min-width: 320px; padding: 40px; border-right: 1px solid var(--border); background: #f8fafc; overflow-y: auto; }
         .detail-right { flex: 1; min-width: 300px; padding: 40px; display: flex; flex-direction: column; background: white; }
 
-        /* --- 图片预览 --- */
+        /* --- 🌟 图片预览样式 --- */
         #img-preview-container { margin: 10px 0 20px 0; display: none; text-align: left; }
         #img-preview { width: 120px; height: 120px; object-fit: cover; border-radius: 12px; border: 2px solid var(--primary); padding: 2px; background: white; }
 
@@ -70,7 +70,7 @@
 
     <div id="loader">
         <i class="fa-solid fa-circle-notch fa-spin fa-3x" style="color:var(--primary); margin-bottom: 15px;"></i>
-        <p style="font-weight:700;">Processing Request...</p>
+        <p style="font-weight:700;">Processing...</p>
     </div>
 
     <nav>
@@ -80,17 +80,17 @@
 
     <div id="auth-modal" class="modal-overlay">
         <div class="pro-card" style="width:100%; max-width:420px; position:relative;">
-            <button style="position:absolute; top:20px; right:20px; border:none; background:none; font-size:24px; cursor:pointer; color:#94a3b8;" onclick="closeModal('auth-modal')">&times;</button>
+            <button class="close-btn" style="position:absolute; top:20px; right:20px; border:none; background:none; font-size:24px; cursor:pointer; color:#94a3b8;" onclick="closeModal('auth-modal')">&times;</button>
             <h2 id="auth-title" style="text-align:center; font-weight:800; margin-top:0;">Welcome</h2>
             
             <div id="login-form">
                 <input type="text" id="l-id" placeholder="Student ID" class="input-pro">
                 <input type="password" id="l-pw" placeholder="Password" class="input-pro">
                 <button class="btn btn-primary" style="width:100%;" onclick="handleLogin()">Sign In</button>
-                <p style="text-align:center; font-size:14px; margin-top:20px;">New user? <a href="javascript:void(0)" onclick="toggleAuth(false)" style="color:var(--primary); font-weight:700;">Register here</a></p>
+                <p style="text-align:center; font-size:14px; margin-top:20px;">New user? <a href="javascript:void(0)" onclick="toggleAuth(false)" style="color:var(--primary); font-weight:700;">Create account</a></p>
                 <div style="border-top:1px dashed #ddd; margin-top:30px; padding-top:20px; text-align:center;">
                     <a href="javascript:void(0)" style="font-size:12px; color:#94a3b8; text-decoration:none;" onclick="resetDatabase()">
-                        <i class="fa-solid fa-screwdriver-wrench"></i> Dev Reset (Code: 8888)
+                        <i class="fa-solid fa-screwdriver-wrench"></i> Developer Reset (Code: 8888)
                     </a>
                 </div>
             </div>
@@ -103,12 +103,12 @@
                     <input type="email" id="r-email" placeholder="Email Address" class="input-pro" style="margin-bottom:0;">
                     <button class="btn" style="background:#0f172a; color:white; min-width:90px;" onclick="sendCode('r-email')">Code</button>
                 </div>
-                <p style="font-size:11px; color:#94a3b8; margin:8px 0 16px 5px;">Verification code is required.</p>
+                <p style="font-size:11px; color:#94a3b8; margin:8px 0 16px 5px;">A verification code will be sent.</p>
                 <input type="text" id="r-code" placeholder="6-Digit Code (or 8888)" class="input-pro">
                 <input type="text" id="r-anon" placeholder="Display Nickname" class="input-pro">
-                <input type="password" id="r-pw" placeholder="Password" class="input-pro">
+                <input type="password" id="r-pw" placeholder="Create Password" class="input-pro">
                 <input type="password" id="r-pw-confirm" placeholder="Confirm Password" class="input-pro">
-                <button class="btn btn-primary" style="width:100%;" onclick="handleRegister()">Create Account</button>
+                <button class="btn btn-primary" style="width:100%;" onclick="handleRegister()">Register & Start</button>
                 <p style="text-align:center; font-size:14px; margin-top:20px;"><a href="javascript:void(0)" onclick="toggleAuth(true)">Back to login</a></p>
             </div>
         </div>
@@ -125,46 +125,48 @@
     <div class="container">
         <div id="home" class="page active">
             <div class="hero-section">
-                <h1>Campus moving, <span>reimagined.</span></h1>
-                <p style="font-size:18px; color:var(--text-muted); max-width:600px; margin:0 auto 30px;">Direct peer-to-peer moving help for the university community.</p>
-                <div style="display: flex; justify-content: center; gap: 16px;">
-                    <button class="btn btn-primary" onclick="requireAuth('post')">Post a Request <i class="fa-solid fa-arrow-right"></i></button>
-                    <button class="btn btn-secondary" onclick="navigate('explore')">Explore Marketplace</button>
+                <div class="hero-content">
+                    <h1>Campus moving, <span>reimagined.</span></h1>
+                    <p style="font-size:18px; color:var(--text-muted); max-width:600px; margin:0 auto 30px;">Connect with verified fellow students for reliable, affordable moving help.</p>
+                    <div style="display: flex; justify-content: center; gap: 16px;">
+                        <button class="btn btn-primary" onclick="requireAuth('post')">Post a Request <i class="fa-solid fa-arrow-right"></i></button>
+                        <button class="btn btn-secondary" onclick="navigate('explore')">Explore Market</button>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div id="explore" class="page">
-            <h2 style="font-weight:800; margin-bottom:30px;">Active Requests</h2>
+            <h2 style="font-weight:800; margin-bottom:30px;">Marketplace</h2>
             <div id="task-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px;"></div>
         </div>
         
         <div id="post" class="page">
             <div class="pro-card" style="max-width: 800px; margin: 0 auto; padding:40px;">
-                <h2 style="margin-top:0; font-weight:800;">Create Request</h2>
+                <h2 style="margin-top:0; font-weight:800;">Create a Request</h2>
                 <div id="map"></div>
                 
                 <div style="display:flex; gap:20px;">
                     <div style="flex:1;">
-                        <label style="font-size:12px; font-weight:700;">Pick-up (Editable)</label>
+                        <label style="font-size:12px; font-weight:700;">Pick-up Point (🌟 Editable)</label>
                         <input type="text" id="p_from" class="input-pro" placeholder="Select on map or type">
                     </div>
                     <div style="flex:1;">
-                        <label style="font-size:12px; font-weight:700;">Drop-off (Editable)</label>
+                        <label style="font-size:12px; font-weight:700;">Drop-off Point (🌟 Editable)</label>
                         <input type="text" id="p_to" class="input-pro" placeholder="Select on map or type">
                     </div>
                 </div>
 
                 <div style="display:flex; gap:20px;">
-                    <div style="flex:1;"><label style="font-size:12px; font-weight:700;">Moving Date</label><input type="datetime-local" id="p_dt" class="input-pro"></div>
+                    <div style="flex:1;"><label style="font-size:12px; font-weight:700;">Preferred Date</label><input type="datetime-local" id="p_dt" class="input-pro"></div>
                     <div style="flex:1;"><label style="font-size:12px; font-weight:700;">Reward Offer</label><input type="text" id="p_reward" class="input-pro" placeholder="e.g. $40"></div>
                 </div>
 
                 <div style="margin-bottom:15px;">
                     <label style="font-size:12px; font-weight:700;">Elevator Available?</label>
                     <select id="p_elevator" class="input-pro">
-                        <option value="No">No (Stairs only)</option>
-                        <option value="Yes">Yes (Elevator available)</option>
+                        <option value="No">No Elevator (Stairs)</option>
+                        <option value="Yes">Yes (Elevator Available)</option>
                     </select>
                 </div>
 
@@ -172,7 +174,7 @@
                 <textarea id="p_items" class="input-pro" rows="3" placeholder="List your items..."></textarea>
                 
                 <div id="img-preview-container">
-                    <p style="font-size:12px; font-weight:700;">Image Preview:</p>
+                    <p style="font-size:12px; font-weight:700;">Thumbnail Preview:</p>
                     <img id="img-preview" src="">
                 </div>
 
@@ -206,7 +208,7 @@
 
         window.onload = () => { renderNav(); navigate('home'); };
 
-        /* --- 导航与 UI 控制 --- */
+        /* --- 界面导航 --- */
         function renderNav() {
             const nav = document.getElementById('nav-menu');
             if (user) {
@@ -233,12 +235,12 @@
         function toggleAuth(isL) { 
             document.getElementById('login-form').style.display=isL?'block':'none'; 
             document.getElementById('reg-form').style.display=isL?'none':'block'; 
-            document.getElementById('auth-title').innerText = isL ? 'Welcome Back' : 'Create Account';
+            document.getElementById('auth-title').innerText = isL ? 'Welcome Back' : 'Join Community';
         }
         function showLoader(s) { document.getElementById('loader').style.display = s ? 'flex' : 'none'; }
         function requireAuth(target) { if (!user) openModal('auth-modal'); else navigate(target); }
 
-        /* --- 🌟 图片预览处理 --- */
+        /* --- 🌟 图片预览预览功能 --- */
         function handleImagePreview(input) {
             const preview = document.getElementById('img-preview');
             const container = document.getElementById('img-preview-container');
@@ -249,25 +251,22 @@
             }
         }
 
-        /* --- 认证逻辑 --- */
+        /* --- 核心 Auth 逻辑 --- */
         async function sendCode(id) {
             const email = document.getElementById(id).value; if(!email) return alert("Enter email");
             showLoader(true);
-            try { 
-                await fetch(`${API}/auth/send-code`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email }) }); 
-                showLoader(false); alert("Verification code sent!"); 
-            } catch(e) { showLoader(false); }
+            try { await fetch(`${API}/auth/send-code`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email }) }); showLoader(false); alert("Verification code sent!"); } catch(e) { showLoader(false); }
         }
 
         async function handleRegister() {
             const pw = document.getElementById('r-pw').value;
-            if (pw !== document.getElementById('r-pw-confirm').value) return alert("Passwords do not match.");
+            if (pw !== document.getElementById('r-pw-confirm').value) return alert("Passwords match error.");
             
             const body = { 
                 student_id: document.getElementById('r-id').value, 
                 first_name: document.getElementById('r-first').value, 
                 given_name: document.getElementById('r-given').value, 
-                phone: document.getElementById('r-phone').value,
+                phone: document.getElementById('r-phone').value, // 🌟 补全字段
                 email: document.getElementById('r-email').value, 
                 code: document.getElementById('r-code').value, 
                 anonymous_name: document.getElementById('r-anon').value, 
@@ -278,8 +277,8 @@
             try { 
                 const r = await fetch(`${API}/auth/register`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) }); 
                 const res = await r.json(); showLoader(false);
-                if(res.success) { alert("Registration done! Please login."); toggleAuth(true); } else alert(res.message);
-            } catch(e) { showLoader(false); alert("Server error."); }
+                if(res.success) { alert("Registration successful!"); toggleAuth(true); } else alert(res.message);
+            } catch(e) { showLoader(false); }
         }
 
         async function handleLogin() {
@@ -293,7 +292,7 @@
 
         function logout() { localStorage.clear(); location.reload(); }
 
-        /* --- 地图定位 (🌟 优化: 填充地址但可随意修改) --- */
+        /* --- 🌟 地图与地址处理 (可编辑地址) --- */
         function initMap() {
             if(map) { map.invalidateSize(); return; }
             map = L.map('map').setView([-36.8509, 174.7645], 13);
@@ -313,7 +312,7 @@
             });
         }
 
-        /* --- 任务管理 --- */
+        /* --- 任务逻辑 --- */
         async function createTask() {
             const p_from = document.getElementById('p_from').value;
             const p_to = document.getElementById('p_to').value;
@@ -323,35 +322,34 @@
             const fd = new FormData();
             fd.append('publisher_id', user.student_id); 
             fd.append('move_date', document.getElementById('p_dt').value.split('T')[0] || '');
-            fd.append('move_time', document.getElementById('p_dt').value.split('T')[1] || '');
             fd.append('from_addr', p_from);
             fd.append('to_addr', p_to);
             fd.append('reward', document.getElementById('p_reward').value || 'Negotiable');
-            fd.append('has_elevator', document.getElementById('p_elevator').value);
+            fd.append('has_elevator', document.getElementById('p_elevator').value); // 🌟 发送电梯状态
             fd.append('items_desc', document.getElementById('p_items').value);
             if(document.getElementById('p_file').files[0]) fd.append('task_image', document.getElementById('p_file').files[0]);
             
             try { 
                 const r = await fetch(`${API}/task/create`, { method: 'POST', body: fd });
                 const res = await r.json(); showLoader(false);
-                if(res.success) navigate('explore'); else alert(res.message);
-            } catch (e) { showLoader(false); alert("Post failed."); }
+                if(res.success) { alert("Task Published!"); navigate('explore'); } else alert(res.message);
+            } catch (e) { showLoader(false); alert("Upload failed."); }
         }
 
         async function loadTasks() {
             try {
                 const r = await fetch(`${API}/task/all`); const d = await r.json(); allTasksData = d.list;
                 const container = document.getElementById('task-list');
-                if (!d.list || d.list.length === 0) return container.innerHTML = `<p style="grid-column:1/-1;text-align:center;padding:50px;color:var(--text-muted);">No active tasks.</p>`;
+                if (!d.list || d.list.length === 0) return container.innerHTML = `<p style="grid-column:1/-1;text-align:center;padding:50px;">No active tasks.</p>`;
                 
                 container.innerHTML = d.list.map(t => `
                     <div class="pro-card">
-                        <img src="${t.img_url || DEFAULT_IMG}" style="width:100%; height:160px; object-fit:cover; border-radius:12px; margin-bottom:15px;">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+                        <img src="${t.img_url || DEFAULT_IMG}" style="width:100%; height:160px; object-fit:cover; border-radius:10px; margin-bottom:15px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                             <span style="font-weight:800; color:var(--primary); font-size:18px;">${t.reward}</span>
-                            <span class="status-tag">★ ${(t.rating_avg||5).toFixed(1)}</span>
+                            <span class="status-tag">★ 5.0</span>
                         </div>
-                        <h4 style="margin:0 0 10px 0;">${t.anonymous_name}'s Request</h4>
+                        <h4 style="margin:0 0 15px 0;">${t.anonymous_name}'s Request</h4>
                         <div style="display:flex; gap:10px;">
                             <button class="btn btn-secondary" style="flex:1" onclick="viewTaskDetail('${t.id}')">Details</button>
                             <button class="btn btn-primary" style="flex:1" onclick="requireAuth(() => acceptTask('${t.id}'))">Accept</button>
@@ -360,26 +358,26 @@
             } catch (e) {}
         }
 
-        /* --- 详情与留言 --- */
+        /* --- 详情与留言逻辑 --- */
         function viewTaskDetail(taskId) {
             const t = allTasksData.find(x => x.id === taskId); if(!t) return;
             const comsHtml = (t.comments || []).map(c => `
                 <div style="background:#f1f5f9; padding:12px; border-radius:12px; margin-bottom:10px; border: 1px solid #e2e8f0;">
                     <div style="font-size:11px; font-weight:800; color:var(--primary); margin-bottom:4px;">${c.name}</div>
-                    <div style="font-size:13px; line-height:1.4;">${c.text}</div>
+                    <div style="font-size:13px;">${c.text}</div>
                 </div>`).join('');
 
             document.getElementById('detail-body-content').innerHTML = `
                 <div class="detail-left">
                     <h2 style="color:var(--primary); margin-top:0; font-size:28px;">${t.reward}</h2>
-                    <p style="font-size:14px; color:var(--text-muted); margin-bottom:20px;">Elevator Info: <b>${t.has_elevator || 'No'}</b></p>
+                    <p style="font-size:14px; color:var(--text-muted); margin-bottom:20px;">Elevator: <b>${t.has_elevator || 'No'}</b></p>
                     <img src="${t.img_url || DEFAULT_IMG}" style="width:100%; border-radius:15px; margin-bottom:20px; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
                     <p><b>Items:</b> ${t.items_desc}</p>
                     <div style="background:white; padding:15px; border-radius:12px; border:1px solid var(--border);">
                         <p style="margin:0 0 8px 0; font-size:13px;"><i class="fa-solid fa-circle-dot" style="color:var(--primary);width:20px;"></i> ${t.from_addr}</p>
                         <p style="margin:0; font-size:13px;"><i class="fa-solid fa-location-dot" style="color:#ef4444;width:20px;"></i> ${t.to_addr}</p>
                     </div>
-                    <button class="btn btn-primary" style="width:100%; margin-top:25px;" onclick="acceptTask('${t.id}')">Accept Task</button>
+                    <button class="btn btn-primary" style="width:100%; margin-top:25px;" onclick="acceptTask('${t.id}')">Accept This Task</button>
                 </div>
                 <div class="detail-right">
                     <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:15px;">Discussion</h3>
@@ -388,7 +386,7 @@
                     <div style="display:flex; gap:10px; padding-top:20px; border-top:1px solid #eee;">
                         <input type="text" id="com-txt" class="input-pro" style="margin-bottom:0;" placeholder="Ask...">
                         <button class="btn btn-primary" onclick="postComment('${t.id}')">Send</button>
-                    </div>` : '<p style="font-size:12px; text-align:center;">Login to join the discussion.</p>'}
+                    </div>` : '<p style="font-size:12px; text-align:center;">Login to join discussion.</p>'}
                 </div>`;
             openModal('task-detail-modal');
         }
@@ -396,16 +394,16 @@
         async function postComment(taskId) {
             const text = document.getElementById('com-txt').value; if(!text) return;
             try { 
-                const r = await fetch(`${API}/task/comment`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({task_id:taskId, user_id:user.student_id, name:user.anonymous_name, text}) }); 
-                const d = await r.json(); allTasksData = d.list; viewTaskDetail(taskId); 
+                await fetch(`${API}/task/comment`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({task_id:taskId, user_id:user.student_id, name:user.anonymous_name, text}) }); 
+                viewTaskDetail(taskId); // 刷新详情弹窗
             } catch(e) {}
         }
 
         async function acceptTask(id) {
-            if(!confirm("Ready to help with this?")) return;
+            if(!confirm("Accept this task?")) return;
             showLoader(true); 
             await fetch(`${API}/task/workflow`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ task_id: id, status: 'assigned', helper_id: user.student_id }) }); 
-            showLoader(false); navigate('prof'); closeModal('task-detail-modal');
+            showLoader(false); closeModal('task-detail-modal'); navigate('prof');
         }
 
         /* --- 个人中心 --- */
@@ -418,33 +416,33 @@
                 const tData = await tRes.json();
 
                 document.getElementById('profile-form-area').innerHTML = `
-                    <label>Display Nickname</label><input type="text" id="up-anon" value="${u.anonymous_name}" class="input-pro">
-                    <label>Phone Number</label><input type="text" id="up-phone" value="${u.phone || ''}" class="input-pro">
-                    <label>Email Address</label>
+                    <label>Nickname</label><input type="text" id="up-anon" value="${u.anonymous_name}" class="input-pro">
+                    <label>Phone</label><input type="text" id="up-phone" value="${u.phone || ''}" class="input-pro">
+                    <label>Email (Verification for changes)</label>
                     <div style="display:flex; gap:10px;">
                         <input type="email" id="up-email" value="${u.email}" class="input-pro">
                         <button class="btn" style="background:#0f172a; color:white; height:48px;" onclick="sendCode('up-email')">Code</button>
                     </div>
-                    <label>Verify Code (or 8888)</label>
-                    <input type="text" id="up-code" placeholder="Enter code" class="input-pro">
-                    <button class="btn btn-primary" style="width:100%;" onclick="updateProfile()">Save Changes</button>
+                    <label>Enter Code to Save (or 8888)</label>
+                    <input type="text" id="up-code" placeholder="6-digit code" class="input-pro">
+                    <button class="btn btn-primary" style="width:100%;" onclick="updateProfile()">Save All Changes</button>
                 `;
 
                 const pub = tData.list.filter(x => x.publisher_id === u.student_id);
                 const acc = tData.list.filter(x => x.helper_id === u.student_id);
                 document.getElementById('profile-tasks-area').innerHTML = `
-                    <h4 style="margin:0 0 15px 0;">Published (${pub.length})</h4>
-                    ${pub.map(t => `<div class="task-item-sm"><span>${t.reward} - ${t.items_desc.substring(0,18)}..</span><span class="status-tag status-${t.status}">${t.status}</span></div>`).join('') || '<p style="color:#94a3b8; font-size:13px;">None.</p>'}
-                    <h4 style="margin:30px 0 15px 0;">Accepted (${acc.length})</h4>
-                    ${acc.map(t => `<div class="task-item-sm"><span>${t.reward} - ${t.items_desc.substring(0,18)}..</span><span class="status-tag status-${t.status}">${t.status}</span></div>`).join('') || '<p style="color:#94a3b8; font-size:13px;">None.</p>'}
+                    <h4 style="margin:0 0 15px 0;">Published Tasks (${pub.length})</h4>
+                    ${pub.map(t => `<div class="task-item-sm"><span>${t.reward} - ${t.items_desc.substring(0,18)}..</span><span class="status-tag">${t.status}</span></div>`).join('') || '<p style="color:#94a3b8; font-size:13px;">None.</p>'}
+                    <h4 style="margin:30px 0 15px 0;">Accepted Tasks (${acc.length})</h4>
+                    ${acc.map(t => `<div class="task-item-sm"><span>${t.reward} - ${t.items_desc.substring(0,18)}..</span><span class="status-tag">${t.status}</span></div>`).join('') || '<p style="color:#94a3b8; font-size:13px;">None.</p>'}
                 `;
                 showLoader(false);
             } catch(e) { showLoader(false); }
         }
 
         async function updateProfile() {
-            const updates = { anonymous_name: document.getElementById('up-anon').value, phone: document.getElementById('up-phone').value, email: document.getElementById('up-email').value };
             const code = document.getElementById('up-code').value; if(!code) return alert("Code is required.");
+            const updates = { anonymous_name: document.getElementById('up-anon').value, phone: document.getElementById('up-phone').value, email: document.getElementById('up-email').value };
             showLoader(true);
             try {
                 const r = await fetch(`${API}/user/update`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ student_id: user.student_id, email: updates.email, code, updates }) });
@@ -454,8 +452,7 @@
         }
 
         async function resetDatabase() {
-            const code = prompt("⚠️ Warning: Delete ALL data? Enter 8888 to confirm:");
-            if (code !== '8888') return;
+            if (prompt("Enter 8888 to reset EVERYTHING:") !== '8888') return;
             showLoader(true);
             try { await fetch(`${API}/dev/reset`, { method: 'POST' }); showLoader(false); localStorage.clear(); location.reload(); } catch(e) { showLoader(false); }
         }
