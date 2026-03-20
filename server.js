@@ -25,7 +25,7 @@ const storage = new CloudinaryStorage({
   params: { folder: 'dormlift_prod', allowed_formats: ['jpg', 'png', 'jpeg'] }
 });
 const upload = multer({ storage: storage });
-
+console.log("Current Mongo URL:", process.env.MONGO_URL);
 // 连接数据库
 mongoose.connect(process.env.MONGO_URL)
   .then(() => console.log("✅ MongoDB Connected."))
