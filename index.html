@@ -2,92 +2,139 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DormLift Pro | Professional Moving Network</title>
+    <title>DormLift Pro | Professional Student Logistics</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        :root { --primary: #3498db; --success: #27ae60; --dark: #2c3e50; --gray: #95a5a6; --light: #f4f7f6; }
-        body { margin: 0; font-family: 'Inter', 'Segoe UI', sans-serif; background: var(--light); color: #333; }
+        :root { --primary: #3498db; --success: #27ae60; --danger: #e74c3c; --dark: #2c3e50; --gray: #95a5a6; --light: #f4f7f6; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--light); color: #333; }
         
-        /* 🛡️ 强制隔离逻辑 */
-        .page { display: none !important; opacity: 0; transition: 0.3s; }
+        .page { display: none !important; opacity: 0; }
         .page.active { display: block !important; opacity: 1; animation: fadeIn 0.4s; }
-        @keyframes fadeIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
-        nav { background: var(--dark); padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; color: white; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .logo { font-size: 22px; font-weight: 800; cursor: pointer; color: white; text-decoration: none; }
-        .nav-links a { color: #bdc3c7; margin-left: 20px; text-decoration: none; cursor: pointer; font-weight: 600; font-size: 14px; }
-        .nav-links a:hover { color: white; }
+        nav { background: var(--dark); padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; color: white; position: sticky; top: 0; z-index: 1000; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .logo { font-size: 22px; font-weight: 800; cursor: pointer; color: white; }
+        .nav-links a { color: #bdc3c7; margin-left: 20px; text-decoration: none; cursor: pointer; font-weight: 600; font-size: 14px; transition: 0.3s; }
+        .nav-links a:hover, .nav-links a.active { color: white; }
 
         .container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
-        .card { background: white; border-radius: 20px; padding: 35px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #eee; margin-bottom: 25px; }
+        .card { background: white; border-radius: 20px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #eee; margin-bottom: 25px; }
 
-        /* 👤 资料页：完美复刻截图布局 */
-        .profile-header { display: flex; gap: 40px; align-items: center; margin-bottom: 30px; }
-        .avatar { width: 120px; height: 120px; background: var(--primary); border-radius: 30px; display: flex; align-items: center; justify-content: center; color: white; font-size: 50px; font-weight: bold; }
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 25px; margin-top: 20px; }
-        .info-item { background: #fdfdfd; padding: 15px; border-radius: 12px; border: 1px solid #f0f0f0; }
-        .info-item label { display: block; font-size: 11px; text-transform: uppercase; color: var(--gray); font-weight: 800; letter-spacing: 1px; margin-bottom: 5px; }
-        .info-item div { font-weight: 700; font-size: 15px; color: #2c3e50; }
+        /* 注册页：验证码样式 */
+        .verify-row { display: flex; gap: 10px; }
+        .btn-verify { background: #5d6d7e; width: 150px; font-size: 12px; }
 
-        /* 📋 看板设计 */
-        .board { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
-        .column { background: #ebedf0; border-radius: 20px; padding: 15px; min-height: 500px; }
-        .column h3 { font-size: 13px; text-transform: uppercase; color: #7f8c8d; border-left: 4px solid var(--primary); padding-left: 10px; margin-bottom: 15px; }
-        .task-mini { background: white; padding: 15px; border-radius: 12px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        /* 个人资料卡：复刻版 */
+        .profile-info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; }
+        .info-box { background: #fafafa; padding: 15px; border-radius: 12px; border: 1px solid #eee; }
+        .info-box label { display: block; font-size: 10px; color: var(--gray); font-weight: 800; text-transform: uppercase; margin-bottom: 5px; }
+        .info-box div { font-weight: 700; font-size: 14px; }
 
-        /* 📍 地图与发布 */
-        #map { height: 350px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #eee; }
-        .btn { background: var(--primary); color: white; padding: 14px 28px; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; width: 100%; transition: 0.3s; }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(52,152,219,0.3); }
-        
-        /* 🎪 任务大厅 */
-        .hall-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 25px; }
-        .hall-card { background: white; border-radius: 15px; overflow: hidden; border: 1px solid #eee; transition: 0.3s; cursor: pointer; }
-        .hall-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        .hall-card img { width: 100%; height: 180px; object-fit: cover; }
-        
-        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2000; align-items:center; justify-content:center; }
-        .modal-content { background:white; width:500px; padding:30px; border-radius:25px; position:relative; }
+        /* 任务列表 */
+        .list-section { margin-top: 30px; }
+        .list-section h3 { border-bottom: 2px solid var(--primary); display: inline-block; padding-bottom: 5px; margin-bottom: 15px; font-size: 16px; }
+        .task-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; background: white; border-radius: 12px; margin-bottom: 10px; border: 1px solid #eee; }
+
+        /* 任务详情弹窗 */
+        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center; }
+        .modal-content { background:white; width:550px; padding:30px; border-radius:25px; max-height: 90vh; overflow-y: auto; }
+
+        /* 地图 */
+        #map { height: 300px; border-radius: 15px; margin-bottom: 20px; border: 2px solid #eee; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; margin-bottom: 15px; box-sizing: border-box; }
+        .btn { background: var(--primary); color: white; padding: 12px 25px; border: none; border-radius: 10px; cursor: pointer; font-weight: 700; transition: 0.3s; }
+        .btn-danger { background: var(--danger); }
     </style>
 </head>
 <body>
 
 <nav>
-    <div class="logo" onclick="navigate('home')"><i class="fas fa-box"></i> DormLift Pro</div>
+    <div class="logo" onclick="navigate('home')">DormLift Pro</div>
     <div class="nav-links" id="menu"></div>
 </nav>
 
 <div class="container">
     <div id="home" class="page active">
         <div class="card" style="text-align:center; padding: 80px 20px;">
-            <h1 style="font-size: 3rem; margin: 0;">Auckland Student Moving</h1>
-            <p style="color:var(--gray); font-size: 1.2rem;">Premium peer-to-peer logistics for the UoA community.</p>
+            <i class="fas fa-truck-fast fa-4x" style="color:var(--primary); margin-bottom:20px;"></i>
+            <h1 style="font-size: 3rem; margin:0;">DormLift Pro</h1>
+            <p style="color:var(--gray); font-size: 1.2rem; max-width: 600px; margin: 20px auto;">
+                Auckland's premium peer-to-peer student moving network. Connect with fellow students for safe, efficient, and affordable logistics.
+            </p>
             <div style="margin-top:40px; display:flex; justify-content:center; gap:20px;">
                 <button class="btn" style="width:200px" onclick="navigate('post-task')">Post Request</button>
-                <button class="btn" style="width:200px; background:var(--dark);" onclick="navigate('hall')">Market Hall</button>
+                <button class="btn" style="width:200px; background:var(--dark);" onclick="navigate('hall')">Find Tasks</button>
             </div>
         </div>
     </div>
 
-    <div id="register" class="page">
-        <div class="card" style="max-width:700px; margin:auto;">
-            <h2 style="text-align:center;">Join the Network</h2>
-            <form id="regForm">
+    <div id="post-task" class="page">
+        <div class="card">
+            <h2>Post a New Task</h2>
+            <div id="map"></div>
+            <form id="taskForm">
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
-                    <input type="text" id="r_id" placeholder="Student ID" required>
-                    <input type="text" id="r_school" placeholder="University" required>
-                    <input type="password" id="r_pwd" placeholder="Password" required>
-                    <input type="email" id="r_email" placeholder="Email" required>
-                    <input type="text" id="r_fname" placeholder="First Name" required>
-                    <input type="text" id="r_lname" placeholder="Last Name" required>
-                    <input type="text" id="r_phone" placeholder="Phone Number" required>
-                    <input type="text" id="r_anon" placeholder="Nickname" required>
-                    <select id="r_gender"><option>Male</option><option>Female</option><option>Other</option></select>
-                    <input type="text" id="r_major" placeholder="Major (e.g. Engineering)" required>
+                    <input type="text" id="p_from" placeholder="Pickup (Select on Map)" readonly required>
+                    <input type="text" id="p_to" placeholder="Destination (Select on Map)" readonly required>
+                    <input type="date" id="p_date" required>
+                    <input type="text" id="p_reward" placeholder="Reward (e.g. $50)" required>
+                    <select id="p_people"><option value="1">1 Person Needed</option><option value="2">2 People Needed</option><option value="3">3+ People Needed</option></select>
+                    <select id="p_lift"><option value="Yes">Elevator Available</option><option value="No">No Elevator (Stairs)</option></select>
                 </div>
-                <button type="submit" class="btn" style="margin-top:20px;">Register Now</button>
+                <textarea id="p_desc" placeholder="Instruction/Description (e.g. 3 suitcases, 1 queen bed, meet at gate)" rows="3"></textarea>
+                <label style="font-size:12px; font-weight:bold; color:var(--primary)">Upload Item Photos:</label>
+                <input type="file" id="p_file" multiple style="margin-top:5px;">
+                <button type="submit" class="btn" style="width:100%; margin-top:10px;">Broadcast Task</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="hall" class="page">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2>Task Marketplace</h2>
+            <button class="btn" style="padding:8px 15px; font-size:12px;" onclick="loadHall()">Refresh</button>
+        </div>
+        <div id="hall_list" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:20px;"></div>
+    </div>
+
+    <div id="profile" class="page">
+        <div class="card">
+            <div style="display:flex; gap:30px; align-items:center; margin-bottom:20px;">
+                <div id="prof_avatar" style="width:80px; height:80px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:35px; font-weight:bold;">?</div>
+                <div><h2 id="prof_nickname" style="margin:0;">-</h2><p style="margin:0; color:var(--primary)">Verified Student Member</p></div>
+            </div>
+            <div class="profile-info-grid" id="prof_details"></div>
+        </div>
+
+        <div class="list-section">
+            <h3>My Posted Requests</h3>
+            <div id="my_posts"></div>
+        </div>
+        <div class="list-section">
+            <h3>My Accepted Shifts</h3>
+            <div id="my_shifts"></div>
+        </div>
+    </div>
+
+    <div id="register" class="page">
+        <div class="card" style="max-width:600px; margin:auto;">
+            <h2 style="text-align:center;">Establish Membership</h2>
+            <form id="regForm">
+                <input type="text" id="r_fullname" placeholder="Full Name" required>
+                <input type="text" id="r_anon" placeholder="Anonymous Nickname" required>
+                <input type="text" id="r_school" placeholder="University Name" required>
+                <select id="r_gender"><option>Male</option><option>Female</option><option>Other</option></select>
+                <div class="verify-row">
+                    <input type="email" id="r_email" placeholder="Student Email" required>
+                    <button type="button" class="btn btn-verify" onclick="sendCode()">Send Code</button>
+                </div>
+                <input type="text" id="r_code" placeholder="Verification Code" required>
+                <input type="text" id="r_phone" placeholder="Phone Number" required>
+                <input type="password" id="r_pwd" placeholder="Password" required>
+                <input type="password" id="r_pwd_confirm" placeholder="Confirm Password" required>
+                <button type="submit" class="btn" style="width:100%; margin-top:10px;">Complete Registration</button>
             </form>
         </div>
     </div>
@@ -96,76 +143,21 @@
         <div class="card" style="max-width:400px; margin:auto; text-align:center;">
             <h2>Portal Login</h2>
             <form id="loginForm">
-                <input type="text" id="l_id" placeholder="Student ID" required style="margin-bottom:15px;">
-                <input type="password" id="l_pwd" placeholder="Password" required style="margin-bottom:15px;">
-                <button type="submit" class="btn">Authenticate</button>
+                <input type="email" id="l_email" placeholder="Email" required>
+                <input type="password" id="l_pwd" placeholder="Password" required>
+                <button type="submit" class="btn" style="width:100%;">Login</button>
             </form>
-        </div>
-    </div>
-
-    <div id="post-task" class="page">
-        <div class="card">
-            <h2>Post a Moving Request</h2>
-            <div id="map"></div>
-            <form id="taskForm">
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
-                    <input type="text" id="p_from" placeholder="Pickup (Click Map)" readonly required>
-                    <input type="text" id="p_to" placeholder="Destination (Click Map)" readonly required>
-                    <input type="date" id="p_date" required>
-                    <input type="text" id="p_reward" placeholder="Reward (e.g. $50)" required>
-                </div>
-                <textarea id="p_desc" placeholder="Details (e.g. 3 boxes, 2nd floor, no elevator)" rows="3" style="width:100%; padding:10px; border-radius:10px; margin-bottom:15px;"></textarea>
-                <input type="file" id="p_file" multiple style="margin-bottom:20px;">
-                <button type="submit" class="btn">Broadcast Request</button>
-            </form>
-        </div>
-    </div>
-
-    <div id="hall" class="page">
-        <h2 style="margin-bottom:25px;">Active Market</h2>
-        <div id="hall_list" class="hall-grid"></div>
-    </div>
-
-    <div id="dashboard" class="page">
-        <h2>Control Dashboard</h2>
-        <div class="board">
-            <div class="column"><h3>Pending</h3><div id="list_pending"></div></div>
-            <div class="column"><h3>Assigned</h3><div id="list_active"></div></div>
-            <div class="column"><h3>Finished</h3><div id="list_done"></div></div>
-        </div>
-    </div>
-
-    <div id="profile" class="page">
-        <div class="card">
-            <div class="profile-header">
-                <div id="prof_avatar" class="avatar">?</div>
-                <div>
-                    <h1 id="prof_nickname" style="margin:0;">-</h1>
-                    <p style="color:var(--primary); font-weight:bold; margin:5px 0;">Premium Member</p>
-                </div>
-            </div>
-            <div class="info-grid">
-                <div class="info-item"><label>Student ID</label><div id="p-id">-</div></div>
-                <div class="info-item"><label>Full Name</label><div id="p-fullname">-</div></div>
-                <div class="info-item"><label>Given Name</label><div id="p-given">-</div></div>
-                <div class="info-item"><label>Anonymous Name</label><div id="p-anon">-</div></div>
-                <div class="info-item"><label>Gender</label><div id="p-gender">-</div></div>
-                <div class="info-item"><label>Phone</label><div id="p-phone">-</div></div>
-                <div class="info-item"><label>Email</label><div id="p-email">-</div></div>
-                <div class="info-item"><label>Rating Avg</label><div id="p-rating" style="color:var(--success)">5.0 ★</div></div>
-                <div class="info-item"><label>Task Count</label><div id="p-count">0</div></div>
-            </div>
         </div>
     </div>
 </div>
 
 <div id="taskModal" class="modal">
     <div class="modal-content">
-        <h2 id="m_reward" style="color:var(--success); margin-top:0;">-</h2>
-        <div id="m_imgs" style="display:flex; gap:10px; overflow-x:auto; margin-bottom:15px;"></div>
-        <p id="m_desc" style="background:#f9f9f9; padding:15px; border-radius:12px; font-size:14px;"></p>
-        <div id="m_action"></div>
-        <button class="btn" style="background:var(--gray); margin-top:10px;" onclick="document.getElementById('taskModal').style.display='none'">Close</button>
+        <h2 id="m_reward" style="color:var(--success); margin:0 0 15px 0;">-</h2>
+        <div id="m_imgs" style="display:flex; gap:10px; overflow-x:auto; margin-bottom:20px;"></div>
+        <div id="m_details" style="background:var(--light); padding:20px; border-radius:15px; font-size:14px; line-height:1.8;"></div>
+        <div id="m_action" style="margin-top:20px; display:flex; gap:10px;"></div>
+        <button class="btn" style="background:var(--gray); width:100%; margin-top:15px;" onclick="document.getElementById('taskModal').style.display='none'">Close</button>
     </div>
 </div>
 
@@ -174,22 +166,23 @@
     let map, markers = [], taskCache = {};
 
     function navigate(p) {
-        if(!user && ['dashboard', 'post-task', 'profile'].includes(p)) p = 'login';
+        if(!user && ['post-task', 'profile'].includes(p)) p = 'login';
         document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
         document.getElementById(p).classList.add('active');
         updateMenu();
         if(p==='post-task') initMap();
         if(p==='hall') loadHall();
-        if(p==='dashboard') loadDash();
         if(p==='profile') loadProfile();
     }
 
     function updateMenu() {
         const m = document.getElementById('menu');
-        if(!user) m.innerHTML = `<a onclick="navigate('login')">Login</a><a onclick="navigate('register')">Register</a>`;
-        else m.innerHTML = `<a onclick="navigate('hall')">Hall</a><a onclick="navigate('post-task')">Post</a><a onclick="navigate('dashboard')">Board</a><a onclick="navigate('profile')">Profile</a><a onclick="logout()">Logout</a>`;
+        if(!user) m.innerHTML = `<a onclick="navigate('home')">Home</a><a onclick="navigate('login')">Log In</a><a onclick="navigate('register')">Register</a>`;
+        else m.innerHTML = `<a onclick="navigate('home')">Home</a><a onclick="navigate('post-task')">Post Task</a><a onclick="navigate('hall')">Find Tasks</a><a onclick="navigate('profile')">My Profile</a><a onclick="logout()" style="color:var(--danger)">Log Out</a>`;
     }
     function logout() { localStorage.clear(); location.reload(); }
+
+    function sendCode() { alert("Verification code sent to email!"); } // 模拟发送
 
     function initMap() {
         if(map) return;
@@ -210,79 +203,89 @@
         const res = await fetch('/api/task/all'); const d = await res.json();
         document.getElementById('hall_list').innerHTML = d.list.map(t => {
             taskCache[t._id] = t; const imgs = JSON.parse(t.img_url || '[]');
-            return `<div class="hall-card" onclick="viewTask('${t._id}')">
-                <img src="${imgs[0] || 'https://via.placeholder.com/300x180'}">
-                <div style="padding:15px;"><h3 style="color:var(--success); margin:0;">${t.reward}</h3><p style="font-size:12px; color:var(--gray);">${t.move_date}</p></div>
+            return `<div class="card" style="padding:15px; cursor:pointer" onclick="viewTask('${t._id}')">
+                <img src="${imgs[0] || 'https://via.placeholder.com/300x150'}" style="width:100%; height:120px; object-fit:cover; border-radius:10px;">
+                <h3 style="color:var(--success); margin:10px 0 5px 0;">${t.reward}</h3>
+                <p style="font-size:12px; color:var(--gray); margin:0;">📅 ${t.move_date} | 👥 ${t.people_needed}p</p>
             </div>`;
         }).join('');
-    }
-
-    async function loadDash() {
-        const res = await fetch('/api/user/dashboard', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({student_id:user.student_id})});
-        const d = await res.json();
-        const cols = { pending:'', active:'', done:'' };
-        d.list.forEach(t => {
-            taskCache[t._id] = t;
-            const h = `<div class="task-mini"><b>${t.reward}</b><br><small>${t.status}</small><br><button class="btn" style="padding:5px; font-size:10px; margin-top:5px;" onclick="viewTask('${t._id}')">Manage</button></div>`;
-            if(t.status==='pending') cols.pending += h; else if(t.status==='assigned') cols.active += h; else cols.done += h;
-        });
-        document.getElementById('list_pending').innerHTML = cols.pending;
-        document.getElementById('list_active').innerHTML = cols.active;
-        document.getElementById('list_done').innerHTML = cols.done;
     }
 
     function viewTask(id) {
         const t = taskCache[id]; const imgs = JSON.parse(t.img_url || '[]');
         document.getElementById('m_reward').innerText = t.reward;
-        document.getElementById('m_desc').innerText = t.items_desc;
-        document.getElementById('m_imgs').innerHTML = imgs.map(u => `<img src="${u}" style="height:80px; border-radius:10px;">`).join('');
+        document.getElementById('m_imgs').innerHTML = imgs.map(u => `<img src="${u}" style="height:100px; border-radius:10px;">`).join('');
+        document.getElementById('m_details').innerHTML = `
+            <b>Pickup:</b> ${t.from_addr}<br><b>Drop-off:</b> ${t.to_addr}<br>
+            <b>Date:</b> ${t.move_date}<br><b>People Needed:</b> ${t.people_needed}<br>
+            <b>Elevator:</b> ${t.elevator}<br><b>Description:</b> ${t.items_desc}
+        `;
         let btn = '';
-        if(t.status==='pending' && t.publisher_id !== user.student_id) btn = `<button class="btn" onclick="updateStatus('${t._id}', 'assigned', '${user.student_id}')">Accept Task</button>`;
-        else if(t.status==='assigned' && t.publisher_id === user.student_id) btn = `<button class="btn" style="background:var(--success)" onclick="updateStatus('${t._id}', 'finished')">Complete</button>`;
+        if(user && t.publisher_id !== user.email && t.status === 'pending') {
+            btn = `<button class="btn" style="flex:1" onclick="updateStatus('${t._id}', 'assigned', '${user.email}')">Accept Task</button>`;
+        }
         document.getElementById('m_action').innerHTML = btn;
         document.getElementById('taskModal').style.display = 'flex';
     }
 
-    async function updateStatus(id, s, h) {
-        await fetch('/api/task/workflow', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({task_id:id, status:s, helper_id:h})});
-        document.getElementById('taskModal').style.display = 'none'; navigate('dashboard');
-    }
-
     async function loadProfile() {
-        const res = await fetch('/api/user/profile', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({student_id:user.student_id})});
+        const res = await fetch('/api/user/profile', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:user.email})});
         const d = await res.json(); const u = d.user;
         document.getElementById('prof_nickname').innerText = u.anonymous_name;
-        document.getElementById('prof_avatar').innerText = u.anonymous_name[0].toUpperCase();
-        document.getElementById('p-id').innerText = u.student_id;
-        document.getElementById('p-fullname').innerText = u.first_name + ' ' + u.given_name;
-        document.getElementById('p-given').innerText = u.given_name;
-        document.getElementById('p-anon').innerText = u.anonymous_name;
-        document.getElementById('p-gender').innerText = u.gender;
-        document.getElementById('p-phone').innerText = u.phone;
-        document.getElementById('p-email').innerText = u.email;
-        document.getElementById('p-rating').innerText = (u.rating_avg || 5.0).toFixed(1) + ' ★';
-        document.getElementById('p-count').innerText = u.task_count || 0;
+        document.getElementById('prof_details').innerHTML = `
+            <div class="info-box"><label>Full Name</label><div>${u.full_name}</div></div>
+            <div class="info-box"><label>School</label><div>${u.school_name}</div></div>
+            <div class="info-box"><label>Email</label><div>${u.email}</div></div>
+            <div class="info-box"><label>Phone</label><div>${u.phone}</div></div>
+            <div class="info-box"><label>Gender</label><div>${u.gender}</div></div>
+            <div class="info-box"><label>Rating</label><div style="color:var(--success)">5.0 ★</div></div>
+        `;
+        const res2 = await fetch('/api/user/dashboard', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:user.email})});
+        const d2 = await res2.json();
+        document.getElementById('my_posts').innerHTML = d2.list.filter(t => t.publisher_id === user.email).map(t => `
+            <div class="task-item">
+                <div><b>${t.reward}</b><br><small>${t.status.toUpperCase()}</small></div>
+                <button class="btn btn-danger" style="padding:5px 10px; font-size:11px;" onclick="cancelTask('${t._id}')">Cancel</button>
+            </div>`).join('') || '<p>No posts.</p>';
+        document.getElementById('my_shifts').innerHTML = d2.list.filter(t => t.helper_id === user.email).map(t => `
+            <div class="task-item">
+                <div><b>${t.reward}</b><br><small>ASSIGNED</small></div>
+                <button class="btn btn-danger" style="padding:5px 10px; font-size:11px;" onclick="cancelTask('${t._id}', 'unassign')">Quit</button>
+            </div>`).join('') || '<p>No assignments.</p>';
+    }
+
+    async function updateStatus(id, s, h) {
+        await fetch('/api/task/workflow', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({task_id:id, status:s, helper_id:h})});
+        document.getElementById('taskModal').style.display = 'none'; navigate('profile');
+    }
+
+    async function cancelTask(id, type='delete') {
+        if(!confirm("Are you sure?")) return;
+        await fetch('/api/task/cancel', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({task_id:id, type:type})});
+        loadProfile();
     }
 
     document.getElementById('regForm').onsubmit = async e => {
         e.preventDefault();
-        const data = { student_id: document.getElementById('r_id').value, school_name: document.getElementById('r_school').value, password: document.getElementById('r_pwd').value, email: document.getElementById('r_email').value, first_name: document.getElementById('r_fname').value, given_name: document.getElementById('r_lname').value, phone: document.getElementById('r_phone').value, anonymous_name: document.getElementById('r_anon').value, gender: document.getElementById('r_gender').value, major: document.getElementById('r_major').value };
-        await fetch('/api/auth/register', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)});
+        if(document.getElementById('r_pwd').value !== document.getElementById('r_pwd_confirm').value) return alert("Passwords mismatch");
+        const b = { full_name: document.getElementById('r_fullname').value, anonymous_name: document.getElementById('r_anon').value, school_name: document.getElementById('r_school').value, gender: document.getElementById('r_gender').value, email: document.getElementById('r_email').value, phone: document.getElementById('r_phone').value, password: document.getElementById('r_pwd').value };
+        await fetch('/api/auth/register', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(b)});
         navigate('login');
     };
 
     document.getElementById('loginForm').onsubmit = async e => {
         e.preventDefault();
-        const res = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({student_id:document.getElementById('l_id').value, password:document.getElementById('l_pwd').value})});
-        const d = await res.json();
-        if(d.success) { user = d.user; localStorage.setItem('user', JSON.stringify(user)); navigate('home'); } else alert("Error");
+        const r = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email: document.getElementById('l_email').value, password: document.getElementById('l_pwd').value})});
+        const d = await r.json();
+        if(d.success) { user = d.user; localStorage.setItem('user', JSON.stringify(user)); navigate('home'); } else alert("Login Failed");
     };
 
     document.getElementById('taskForm').onsubmit = async e => {
         e.preventDefault(); const f = new FormData();
-        f.append('publisher_id', user.student_id); f.append('from_addr', document.getElementById('p_from').value);
+        f.append('publisher_id', user.email); f.append('from_addr', document.getElementById('p_from').value);
         f.append('to_addr', document.getElementById('p_to').value); f.append('move_date', document.getElementById('p_date').value);
         f.append('reward', document.getElementById('p_reward').value); f.append('items_desc', document.getElementById('p_desc').value);
+        f.append('people_needed', document.getElementById('p_people').value); f.append('elevator', document.getElementById('p_lift').value);
         const files = document.getElementById('p_file').files; for(let i=0; i<files.length; i++) f.append('task_images', files[i]);
         await fetch('/api/task/create', { method:'POST', body:f });
         navigate('hall');
