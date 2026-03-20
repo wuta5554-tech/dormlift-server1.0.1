@@ -21,7 +21,7 @@ const app = express();
 
 // 💡 优先级：Railway 环境变量 > 本地默认值
 // 注意：密码中的 ! 必须写成 %21，否则 MongoDB 驱动会解析失败导致崩溃
-const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://wuta5554_db_user:WHT275024WHT%21@free.lnciszk.mongodb.net/Dormlift?appName=Free";
+const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://wuta5554_db_user:WHT275024WHT@free.lnciszk.mongodb.net/Dormlift?appName=Free";
 const PORT = process.env.PORT || 8080;
 
 // --- 1. 数据库连接 (带重试逻辑) ---
