@@ -12,15 +12,15 @@ const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://wuta5554_db_user:WHT27
 
 mongoose.connect(MONGO_URI).then(() => console.log('✅ Master DB Connected'));
 
-// 用户模型 (10个字段)
+// 1. 用户模型 (10个字段全量)
 const User = mongoose.model('User', new mongoose.Schema({
     full_name: String, anonymous_name: String, school_name: String,
     gender: String, email: { type: String, unique: true }, phone: String,
-    password: { type: String }, major: { type: String, default: 'Engineering' },
-    created_at: { type: Date, default: Date.now }
+    password: { type: String }, rating_avg: { type: Number, default: 5.0 },
+    task_count: { type: Number, default: 0 }, created_at: { type: Date, default: Date.now }
 }));
 
-// 任务模型 (含电梯、人数、坐标)
+// 2. 任务模型 (含地图坐标、图片、电梯、人数)
 const Task = mongoose.model('Task', new mongoose.Schema({
     publisher_id: String, helper_id: { type: String, default: null },
     move_date: String, from_addr: String, to_addr: String,
@@ -31,11 +31,11 @@ const Task = mongoose.model('Task', new mongoose.Schema({
 }));
 
 cloudinary.config({ cloud_name: 'ddlbhkmwb', api_key: '659513524184184', api_secret: 'iRTD1m-vPfaIu0DQ0uLUf4LUyLU' });
-const upload = multer({ storage: new CloudinaryStorage({ cloudinary, params: { folder: 'dormlift_v13' } }) });
+const upload = multer({ storage: new CloudinaryStorage({ cloudinary, params: { folder: 'dormlift_v14' } }) });
 
 app.use(cors()); app.use(express.json()); app.use(express.static(__dirname));
 
-// [Auth]
+// --- API 路由 ---
 app.post('/api/auth/register', async (req, res) => {
     try {
         const hashed = await bcrypt.hash(req.body.password, 10);
@@ -57,7 +57,6 @@ app.post('/api/user/profile', async (req, res) => {
     else res.status(404).json({ success: false });
 });
 
-// [Task Management]
 app.post('/api/task/create', upload.array('task_images', 5), async (req, res) => {
     const urls = req.files ? req.files.map(f => f.path) : [];
     await new Task({ ...req.body, img_url: JSON.stringify(urls) }).save();
@@ -86,4 +85,4 @@ app.post('/api/task/cancel', async (req, res) => {
     res.json({ success: true });
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Master Server running on ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Master Server on ${PORT}`));
