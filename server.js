@@ -1,4 +1,4 @@
-require('dotenv').config(); // 如果你在 Railway 用，这行留着或删掉都不影响
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
