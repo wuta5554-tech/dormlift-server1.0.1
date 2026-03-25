@@ -1,6 +1,14 @@
 /**
- * DormLift Pro - Backend Server (Production Stable)
- * 核心功能：用户认证（含8888测试码）、图片云上传（解决签名报错）、任务大厅、个人中心
+ * DormLift Pro - Super App Master Node (V12.1 Finance Edition)
+ * -------------------------------------------------------------
+ * 包含三大核心生态系统：
+ * 1. Peer Logistics (校园互助物流 - 含勋章积分引擎)
+ * 2. Flea Market (二手跳蚤市场 - 含 Escrow 担保交易状态机)
+ * 3. Campus Buzz (校园八卦社区 - 含点赞与盖楼评论机制)
+ * -------------------------------------------------------------
+ * 金融核心：
+ * - 虚拟钱包体系 (Wallet System)
+ * - 7天超时自动打款守护进程 (Auto-Release Daemon)
  */
 
 const express = require('express');
@@ -8,331 +16,355 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const bcrypt = require('bcryptjs');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// --- 1. 环境变量自检与去空格处理 ---
-const MONGO_CONNECTION_STRING = process.env.MONGO_URL || process.env.MONGO_URI;
+// ==========================================
+// 1. Environment & Database Connection
+// ==========================================
+const MONGO_URI = process.env.MONGO_URI;
 const GAS_URL = process.env.GAS_URL;
 
-console.log("----- DormLift System Startup Check -----");
-if (MONGO_CONNECTION_STRING) {
-    console.log(`✅ Database URL Detected.`);
-} else {
-    console.log("❌ FATAL ERROR: Database URL is missing in environment variables.");
-}
+mongoose.connect(MONGO_URI)
+    .then(() => console.log('✅ DormLift Super App DB Connected (V12.1 Finance Engine)'))
+    .catch(err => console.error('❌ DB Connection Error:', err));
 
-// 🌟 核心修复：强制去除 Cloudinary 变量可能存在的空格/换行符
-const CLOUD_NAME = (process.env.CLOUDINARY_NAME || '').trim();
-const CLOUD_KEY = (process.env.CLOUDINARY_KEY || '').trim();
-const CLOUD_SECRET = (process.env.CLOUDINARY_SECRET || '').trim();
-
-console.log("Cloudinary Config Status:", (CLOUD_NAME && CLOUD_KEY && CLOUD_SECRET) ? "✅ Ready" : "❌ INCOMPLETE");
-console.log("-----------------------------------------");
-
-// --- 2. Cloudinary 官方配置 ---
-cloudinary.config({ 
-  cloud_name: CLOUD_NAME, 
-  api_key: CLOUD_KEY, 
-  api_secret: CLOUD_SECRET 
-});
-
-// 使用内存存储模式，解决签名校验不一致问题
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
-
-// --- 3. 数据库连接 ---
-if (MONGO_CONNECTION_STRING) {
-    mongoose.connect(MONGO_CONNECTION_STRING)
-      .then(() => console.log("✅ MongoDB Connected Successfully."))
-      .catch(err => console.error("❌ MongoDB Connection Error:", err.message));
-}
-
-// --- 4. 数据模型定义 (Schemas) ---
-
-// 用户模型
-const UserSchema = new mongoose.Schema({
-    student_id: { type: String, required: true, unique: true },
-    first_name: String,
-    given_name: String,
-    anonymous_name: String,
-    phone: String,
-    email: { type: String, required: true, unique: true },
+// ==========================================
+// 2. Database Schemas
+// ==========================================
+const User = mongoose.model('User', new mongoose.Schema({
+    student_id: { type: String, required: true, unique: true }, 
+    school_name: { type: String, default: "University of Auckland" },
+    first_name: { type: String, required: true },
+    given_name: { type: String, required: true },
+    gender: { type: String, enum: ['Male', 'Female'] },
+    anonymous_name: { type: String, required: true },
+    phone: { type: String, required: true },
+    email: { type: String, unique: true, required: true },
     password: { type: String, required: true },
-    rating_avg: { type: Number, default: 5.0 }
-});
-const User = mongoose.model('User', UserSchema);
+    rating_avg: { type: Number, default: 5.0 },
+    task_count: { type: Number, default: 0 },
+    medal_points: { type: Number, default: 0 },
+    point_history: { type: Array, default: [] },
+    wallet_balance: { type: Number, default: 1000 }, // 初始体验金
+    created_at: { type: Date, default: Date.now }
+}));
 
-// 任务模型
-const TaskSchema = new mongoose.Schema({
-    publisher_id: String,
+const Task = mongoose.model('Task', new mongoose.Schema({
+    publisher_id: { type: String, required: true },
     helper_id: { type: String, default: null },
-    move_date: String,
-    move_time: String,
-    from_addr: String,
-    to_addr: String,
-    items_desc: String,
-    reward: String,
-    img_url: String,
-    has_elevator: { type: String, default: 'No' }, // 电梯选项支持
-    status: { type: String, default: 'pending' },  // 状态：pending, assigned, completed
-    comments: [{
-        user_id: String,
-        name: String,
-        text: String,
-        created_at: { type: Date, default: Date.now }
-    }]
-}, { timestamps: true });
-const Task = mongoose.model('Task', TaskSchema);
+    move_date: { type: String, required: true },
+    move_time: { type: String, default: '' },
+    from_addr: { type: String, required: true }, 
+    to_addr: { type: String, required: true },   
+    items_desc: { type: String, required: true },
+    reward: { type: String, required: true },
+    has_elevator: { type: String, default: 'false' },
+    load_weight: { type: String, enum: ['Light', 'Heavy'], default: 'Light' },
+    task_scale: { type: String, enum: ['Small', 'Medium', 'Large'], default: 'Small' },
+    medal_points: { type: Number, default: 1 },
+    img_url: { type: String, default: "[]" },
+    status: { type: String, enum: ['pending', 'assigned', 'completed', 'reviewed'], default: 'pending' },
+    comments: { type: Array, default: [] },
+    created_at: { type: Date, default: Date.now }
+}));
 
-const verificationCodes = new Map();
+const MarketItem = mongoose.model('MarketItem', new mongoose.Schema({
+    seller_id: { type: String, required: true },
+    buyer_id: { type: String, default: null },
+    title: { type: String, required: true },
+    description: { type: String, required: true },
+    condition: { type: String, required: true }, 
+    price: { type: Number, required: true },
+    location: { type: String, required: true },
+    img_url: { type: String, default: "[]" },
+    status: { type: String, enum: ['available', 'reserved', 'completed'], default: 'available' },
+    locked_at: { type: Date, default: null }, // 资金托管计时器起点
+    comments: { type: Array, default: [] },
+    created_at: { type: Date, default: Date.now }
+}));
 
-// --- 5. 中间件配置 ---
+const ForumPost = mongoose.model('ForumPost', new mongoose.Schema({
+    author_id: { type: String, required: true },
+    author_name: { type: String, required: true },
+    content: { type: String, required: true },
+    img_url: { type: String, default: "[]" },
+    likes: { type: Array, default: [] }, 
+    comments: { type: Array, default: [] },
+    created_at: { type: Date, default: Date.now }
+}));
+
+const VerifyCode = mongoose.model('VerifyCode', new mongoose.Schema({
+    email: { type: String, required: true },
+    code: { type: String, required: true },
+    expire_at: { type: Date, required: true }
+}));
+
+// ==========================================
+// 3. Auto-Release Escrow Daemon (7 Days)
+// ==========================================
+setInterval(async () => {
+    try {
+        // 查找锁定超过7天的订单
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); 
+        const expiredItems = await MarketItem.find({ status: 'reserved', locked_at: { $lte: sevenDaysAgo } });
+
+        for (let item of expiredItems) {
+            // 自动把托管资金打入卖家钱包
+            await User.findOneAndUpdate({ email: item.seller_id }, { $inc: { wallet_balance: item.price } });
+            
+            // 变更物品状态为已完成
+            item.status = 'completed';
+            await item.save();
+            console.log(`[Escrow Engine] Auto-released $${item.price} to ${item.seller_id} for item ${item._id}`);
+        }
+    } catch (e) { 
+        console.error("[Escrow Engine] Error:", e); 
+    }
+}, 1000 * 60 * 60); // 守护进程：每小时巡检一次数据库
+
+// ==========================================
+// 4. Cloudinary Configuration
+// ==========================================
+cloudinary.config({ 
+    cloud_name: process.env.CLOUDINARY_NAME, 
+    api_key: process.env.CLOUDINARY_KEY, 
+    api_secret: process.env.CLOUDINARY_SECRET 
+});
+
+const storage = new CloudinaryStorage({ 
+    cloudinary, 
+    params: { folder: 'dormlift_superapp', allowed_formats: ['jpg', 'png', 'jpeg', 'mp4'] } 
+});
+const upload = multer({ storage });
+
 app.use(cors()); 
 app.use(express.json()); 
 app.use(express.static(__dirname));
 
-/* =========================================
-   🔑 认证模块 (Authentication)
-   =========================================
-*/
-
-// 发送验证码
+// ==========================================
+// 5. Authentication APIs
+// ==========================================
 app.post('/api/auth/send-code', async (req, res) => {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ success: false });
-
+    const { email } = req.body; 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    verificationCodes.set(email, { code, expires: Date.now() + 600000 });
-
-    const payload = {
-        to: email,
-        subject: "DormLift Verification Code",
-        html: `<h1>Verification Code: ${code}</h1>`
-    };
-
     try {
+        await VerifyCode.findOneAndUpdate({ email }, { code, expire_at: new Date(Date.now() + 5 * 60000) }, { upsert: true });
         await fetch(GAS_URL, { 
             method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify(payload) 
+            body: JSON.stringify({ 
+                to: email, 
+                subject: "DormLift Access Code", 
+                html: `<div style="padding:20px;"><h2>Access Code</h2><p><b style="font-size:24px;color:#4f46e5;">${code}</b></p><p>Expires in 5 minutes.</p></div>` 
+            }) 
         });
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ success: false });
-    }
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// 注册账号 (含 8888 测试后门)
 app.post('/api/auth/register', async (req, res) => {
-    const { student_id, email, password, code, first_name, given_name, anonymous_name, phone } = req.body;
-    
-    // 🌟 测试逻辑：如果填入 8888，跳过验证码检查
-    if (code !== '8888') {
-        const record = verificationCodes.get(email);
-        if (!record || record.code !== code || Date.now() > record.expires) {
-            return res.status(400).json({ success: false, message: "Invalid or expired code." });
-        }
-    }
-
+    const { email, code, password, ...userData } = req.body;
     try {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const newUser = new User({ 
-            student_id, email, password: hashedPassword, 
-            first_name, given_name, anonymous_name, phone 
-        });
-        await newUser.save();
-        if (code !== '8888') verificationCodes.delete(email);
-        res.json({ success: true });
-    } catch (err) {
-        res.status(400).json({ success: false, message: "Registration failed. ID or Email already exists." });
-    }
+        // "8888" 开发者测试后门
+        if (code !== "8888") {
+            const vRecord = await VerifyCode.findOne({ email });
+            if (!vRecord || vRecord.code !== code || vRecord.expire_at < new Date()) return res.status(400).json({ success: false, msg: "Invalid code" });
+        }
+        await new User({ ...userData, email, password: await bcrypt.hash(password, 10) }).save();
+        res.status(201).json({ success: true });
+    } catch (e) { res.status(400).json({ success: false, msg: "Registration error" }); }
 });
 
-// 登录接口
 app.post('/api/auth/login', async (req, res) => {
     try {
-        const user = await User.findOne({ student_id: req.body.student_id }).lean();
-        if (!user || !(await bcrypt.compare(req.body.password, user.password))) {
-            return res.status(401).json({ success: false, message: "Invalid ID or Password" });
+        const user = await User.findOne({ $or: [{ email: req.body.email }, { student_id: req.body.email }] });
+        if (user && await bcrypt.compare(req.body.password, user.password)) {
+            const userObj = user.toObject(); delete userObj.password; 
+            res.json({ success: true, user: userObj });
+        } else {
+            res.status(401).json({ success: false });
         }
-        delete user.password;
-        res.json({ success: true, user });
-    } catch (err) {
-        res.status(500).json({ success: false });
-    }
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
-/* =========================================
-   📦 任务模块 (🌟 修复后的图片上传逻辑)
-   =========================================
-*/
+app.get('/api/user/detail/:email', async (req, res) => {
+    const user = await User.findOne({ email: req.params.email }, { password: 0 }); 
+    res.json({ success: true, user });
+});
 
-app.post('/api/task/create', upload.single('task_image'), async (req, res) => {
+// ==========================================
+// 6. Logistics APIs (物流引擎)
+// ==========================================
+app.post('/api/task/create', upload.array('images', 5), async (req, res) => {
     try {
-        let finalImageUrl = '';
-
-        // 如果用户上传了图片文件
-        if (req.file) {
-            // 封装 upload_stream 使用 Promise 异步上传
-            const streamUpload = (buffer) => {
-                return new Promise((resolve, reject) => {
-                    const stream = cloudinary.uploader.upload_stream(
-                        { folder: 'dormlift_prod' },
-                        (error, result) => {
-                            if (result) resolve(result.secure_url);
-                            else reject(error);
-                        }
-                    );
-                    stream.end(buffer);
-                });
-            };
-
-            try {
-                // 等待图片上传到云端获取 URL
-                finalImageUrl = await streamUpload(req.file.buffer);
-            } catch (uploadErr) {
-                console.error("❌ Cloudinary stream upload failed:", uploadErr.message);
-                return res.status(500).json({ success: false, message: "Upload Error: " + uploadErr.message });
-            }
-        }
-
-        // 保存任务数据到 MongoDB
-        const newTask = new Task({
-            ...req.body,
-            img_url: finalImageUrl
-        });
-        await newTask.save();
-        console.log("✅ Task published successfully.");
+        let pts = req.body.task_scale === 'Large' ? 5 : (req.body.task_scale === 'Medium' ? 3 : 1);
+        await new Task({ ...req.body, medal_points: pts, img_url: JSON.stringify(req.files ? req.files.map(f => f.path) : []) }).save();
         res.json({ success: true });
-
-    } catch (err) {
-        console.error("❌ Task Creation Error:", err.message);
-        res.status(500).json({ success: false, message: err.message });
-    }
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// 获取大厅任务 (带发布者详情聚合)
 app.get('/api/task/all', async (req, res) => {
-    try {
-        const tasks = await Task.aggregate([
-            { $match: { status: 'pending' } },
-            { $sort: { createdAt: -1 } },
-            { $lookup: {
-                from: 'users',
-                localField: 'publisher_id',
-                foreignField: 'student_id',
-                as: 'pub'
-            }},
-            { $unwind: '$pub' }
-        ]);
-        res.json({ success: true, list: tasks.map(t => ({ 
-            ...t, id: t._id, anonymous_name: t.pub.anonymous_name 
-        })) });
-    } catch (err) {
-        res.status(500).json({ success: false });
-    }
+    const list = await Task.find({ status: 'pending', helper_id: null }).sort({ created_at: -1 }); 
+    res.json({ success: true, list });
 });
 
-// 留言互动
 app.post('/api/task/comment', async (req, res) => {
     try {
-        await Task.findByIdAndUpdate(req.body.task_id, { 
-            $push: { comments: { 
-                user_id: req.body.user_id, 
-                name: req.body.name, 
-                text: req.body.text 
-            } } 
-        });
+        await Task.findByIdAndUpdate(req.body.task_id, { $push: { comments: req.body.comment } }); 
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ success: false });
-    }
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// 任务状态更新 (接单)
 app.post('/api/task/workflow', async (req, res) => {
     try {
-        await Task.findByIdAndUpdate(req.body.task_id, { 
-            status: req.body.status, 
-            helper_id: req.body.helper_id 
-        });
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ success: false });
-    }
-});
-
-/* =========================================
-   👤 用户中心 (Profile)
-   =========================================
-*/
-
-// 获取个人仪表盘数据 (我发布的 + 我接受的)
-app.post('/api/user/dashboard', async (req, res) => {
-    try {
-        const list = await Task.find({ 
-            $or: [{ publisher_id: req.body.student_id }, { helper_id: req.body.student_id }] 
-        }).sort({ createdAt: -1 }).lean();
-        res.json({ success: true, list: list.map(t => ({ ...t, id: t._id })) });
-    } catch (err) {
-        res.status(500).json({ success: false });
-    }
-});
-
-// 获取基础资料
-app.post('/api/user/profile', async (req, res) => {
-    try {
-        const user = await User.findOne({ student_id: req.body.student_id }, '-password').lean();
-        res.json({ success: true, user });
-    } catch (err) {
-        res.status(500).json({ success: false });
-    }
-});
-
-// 更新个人资料 (含 8888 后门)
-app.post('/api/user/update', async (req, res) => {
-    const { student_id, email, code, updates } = req.body;
-    
-    // 如果不是用 8888 万能码，则校验验证码
-    if (code !== '8888') {
-        const record = verificationCodes.get(email);
-        if (!record || record.code !== code) {
-            return res.status(400).json({ success: false, message: "Verification failed." });
+        const { task_id, ...updates } = req.body; 
+        const task = await Task.findById(task_id);
+        
+        // 发放勋章积分
+        if (updates.status === 'completed' && task.status !== 'completed' && task.helper_id) {
+            let destText = task.to_addr.includes('@@') ? task.to_addr.split('@@')[1] : task.to_addr;
+            await User.findOneAndUpdate(
+                { email: task.helper_id }, 
+                { 
+                    $inc: { medal_points: task.medal_points }, 
+                    $push: { point_history: { desc: `Logistics: ${destText.substring(0, 30)}`, points: task.medal_points, date: new Date() } } 
+                }
+            );
         }
-    }
-
-    try {
-        const updatedUser = await User.findOneAndUpdate(
-            { student_id: student_id },
-            { $set: updates },
-            { new: true, projection: { password: 0 } }
-        );
-        res.json({ success: true, user: updatedUser });
-    } catch (err) {
-        res.status(500).json({ success: false });
-    }
-});
-
-/* =========================================
-   🛠️ 开发者接口 (Dev Reset)
-   =========================================
-*/
-app.post('/api/dev/reset', async (req, res) => {
-    try {
-        await User.deleteMany({}); 
-        await Task.deleteMany({}); 
-        verificationCodes.clear();
-        console.warn("⚠️ DATABASE RESET PERFORMED BY DEV.");
+        
+        if (updates.status === 'pending') updates.helper_id = null;
+        await Task.findByIdAndUpdate(task_id, { $set: updates }); 
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ success: false });
-    }
+    } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// 启动服务
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 DormLift Server Running on Port ${PORT}`);
+app.post('/api/task/delete', async (req, res) => {
+    await Task.findByIdAndDelete(req.body.task_id); 
+    res.json({ success: true });
 });
+
+// ==========================================
+// 7. Flea Market APIs (二手担保引擎 Escrow)
+// ==========================================
+app.post('/api/market/create', upload.array('images', 5), async (req, res) => {
+    try {
+        await new MarketItem({ ...req.body, img_url: JSON.stringify(req.files ? req.files.map(f => f.path) : []) }).save();
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+app.get('/api/market/all', async (req, res) => {
+    const list = await MarketItem.find({ status: 'available' }).sort({ created_at: -1 }); 
+    res.json({ success: true, list });
+});
+
+app.post('/api/market/comment', async (req, res) => {
+    try { 
+        await MarketItem.findByIdAndUpdate(req.body.item_id, { $push: { comments: req.body.comment } }); 
+        res.json({ success: true }); 
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+app.post('/api/market/workflow', async (req, res) => {
+    try {
+        const { item_id, status, buyer_id } = req.body;
+        const item = await MarketItem.findById(item_id);
+        let updates = { status };
+
+        // [核心流] 买家下单支付，资金打入托管账户
+        if (status === 'reserved' && buyer_id) {
+            const buyer = await User.findOne({ email: buyer_id });
+            if (buyer.wallet_balance < item.price) {
+                return res.status(400).json({ success: false, msg: "INSUFFICIENT_FUNDS" });
+            }
+            await User.findOneAndUpdate({ email: buyer_id }, { $inc: { wallet_balance: -item.price } });
+            updates.buyer_id = buyer_id; 
+            updates.locked_at = new Date(); // 启动 7 天自动打款计时器
+        }
+
+        // [核心流] 买家确认收货，平台向卖家放款
+        if (status === 'completed' && item.status === 'reserved') {
+            await User.findOneAndUpdate({ email: item.seller_id }, { $inc: { wallet_balance: item.price } });
+        }
+
+        // [核心流] 交易取消，将资金退回给买家
+        if (status === 'available' && item.status === 'reserved') {
+            if (item.buyer_id) {
+                await User.findOneAndUpdate({ email: item.buyer_id }, { $inc: { wallet_balance: item.price } });
+            }
+            updates.buyer_id = null; 
+            updates.locked_at = null; // 取消计时器
+        }
+
+        await MarketItem.findByIdAndUpdate(item_id, { $set: updates }); 
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+app.post('/api/market/delete', async (req, res) => {
+    try {
+        await MarketItem.findByIdAndDelete(req.body.task_id); // 复用前端接口字段名 task_id -> item_id
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// ==========================================
+// 8. Forum APIs (八卦社区)
+// ==========================================
+app.post('/api/forum/create', upload.array('images', 5), async (req, res) => {
+    try {
+        await new ForumPost({ ...req.body, img_url: JSON.stringify(req.files ? req.files.map(f => f.path) : []) }).save(); 
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+app.get('/api/forum/all', async (req, res) => {
+    const list = await ForumPost.find().sort({ created_at: -1 }); 
+    res.json({ success: true, list });
+});
+
+app.post('/api/forum/interact', async (req, res) => {
+    const { post_id, action, email, comment } = req.body;
+    try {
+        if (action === 'like') {
+            const p = await ForumPost.findById(post_id);
+            if (p.likes.includes(email)) {
+                await ForumPost.findByIdAndUpdate(post_id, { $pull: { likes: email } });
+            } else {
+                await ForumPost.findByIdAndUpdate(post_id, { $push: { likes: email } });
+            }
+        } else if (action === 'comment') {
+            await ForumPost.findByIdAndUpdate(post_id, { $push: { comments: comment } });
+        }
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// ==========================================
+// 9. Global Utilities
+// ==========================================
+app.post('/api/user/dashboard', async (req, res) => {
+    const { email } = req.body;
+    try {
+        const tasks = await Task.find({ $or: [{ publisher_id: email }, { helper_id: email }] }).sort({ created_at: -1 });
+        const market = await MarketItem.find({ $or: [{ seller_id: email }, { buyer_id: email }] }).sort({ created_at: -1 });
+        const posts = await ForumPost.find({ author_id: email }).sort({ created_at: -1 });
+        res.json({ success: true, tasks, market, posts });
+    } catch (e) { res.status(500).json({ success: false }); }
+});
+
+// Dev Tool: Wipe DB
+app.post('/api/dev/nuke', async (req, res) => {
+    await Task.deleteMany({}); 
+    await MarketItem.deleteMany({}); 
+    await ForumPost.deleteMany({}); 
+    await User.deleteMany({}); 
+    await VerifyCode.deleteMany({}); 
+    res.json({ success: true });
+});
+
+app.listen(PORT, '0.0.0.0', () => console.log(`🚀 DormLift Super App V12.1 Active on ${PORT}`));
