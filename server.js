@@ -1,14 +1,11 @@
 /**
- * DormLift Pro - Super App Master Node (V12.1 Finance Edition)
+ * DormLift Pro - Super App Master Node (V11.3 Stable Edition)
  * -------------------------------------------------------------
  * 包含三大核心生态系统：
  * 1. Peer Logistics (校园互助物流 - 含勋章积分引擎)
  * 2. Flea Market (二手跳蚤市场 - 含 Escrow 担保交易状态机)
  * 3. Campus Buzz (校园八卦社区 - 含点赞与盖楼评论机制)
  * -------------------------------------------------------------
- * 金融核心：
- * - 虚拟钱包体系 (Wallet System)
- * - 7天超时自动打款守护进程 (Auto-Release Daemon)
  */
 
 const express = require('express');
@@ -30,12 +27,14 @@ const MONGO_URI = process.env.MONGO_URI;
 const GAS_URL = process.env.GAS_URL;
 
 mongoose.connect(MONGO_URI)
-    .then(() => console.log('✅ DormLift Super App DB Connected (V12.1 Finance Engine)'))
+    .then(() => console.log('✅ DormLift Super App DB Connected (V11.3)'))
     .catch(err => console.error('❌ DB Connection Error:', err));
 
 // ==========================================
-// 2. Database Schemas
+// 2. Database Schemas (全量生态维表)
 // ==========================================
+
+// [Schema 1] User: Core Identity & Gamification Points
 const User = mongoose.model('User', new mongoose.Schema({
     student_id: { type: String, required: true, unique: true }, 
     school_name: { type: String, default: "University of Auckland" },
@@ -50,17 +49,17 @@ const User = mongoose.model('User', new mongoose.Schema({
     task_count: { type: Number, default: 0 },
     medal_points: { type: Number, default: 0 },
     point_history: { type: Array, default: [] },
-    wallet_balance: { type: Number, default: 1000 }, // 初始体验金
     created_at: { type: Date, default: Date.now }
 }));
 
+// [Schema 2] Task: Logistics Engine
 const Task = mongoose.model('Task', new mongoose.Schema({
     publisher_id: { type: String, required: true },
     helper_id: { type: String, default: null },
     move_date: { type: String, required: true },
     move_time: { type: String, default: '' },
-    from_addr: { type: String, required: true }, 
-    to_addr: { type: String, required: true },   
+    from_addr: { type: String, required: true }, // Format: "lat,lng@@address_text"
+    to_addr: { type: String, required: true },   // Format: "lat,lng@@address_text"
     items_desc: { type: String, required: true },
     reward: { type: String, required: true },
     has_elevator: { type: String, default: 'false' },
@@ -73,31 +72,33 @@ const Task = mongoose.model('Task', new mongoose.Schema({
     created_at: { type: Date, default: Date.now }
 }));
 
+// [Schema 3] MarketItem: Flea Market with Escrow Trading
 const MarketItem = mongoose.model('MarketItem', new mongoose.Schema({
     seller_id: { type: String, required: true },
     buyer_id: { type: String, default: null },
     title: { type: String, required: true },
     description: { type: String, required: true },
-    condition: { type: String, required: true }, 
+    condition: { type: String, required: true }, // Brand New, Like New, Good, Fair
     price: { type: Number, required: true },
     location: { type: String, required: true },
     img_url: { type: String, default: "[]" },
     status: { type: String, enum: ['available', 'reserved', 'completed'], default: 'available' },
-    locked_at: { type: Date, default: null }, // 资金托管计时器起点
     comments: { type: Array, default: [] },
     created_at: { type: Date, default: Date.now }
 }));
 
+// [Schema 4] ForumPost: Campus Buzz Social Feed
 const ForumPost = mongoose.model('ForumPost', new mongoose.Schema({
     author_id: { type: String, required: true },
     author_name: { type: String, required: true },
     content: { type: String, required: true },
     img_url: { type: String, default: "[]" },
-    likes: { type: Array, default: [] }, 
+    likes: { type: Array, default: [] }, // Array of emails
     comments: { type: Array, default: [] },
     created_at: { type: Date, default: Date.now }
 }));
 
+// Verification Code Table
 const VerifyCode = mongoose.model('VerifyCode', new mongoose.Schema({
     email: { type: String, required: true },
     code: { type: String, required: true },
@@ -105,30 +106,7 @@ const VerifyCode = mongoose.model('VerifyCode', new mongoose.Schema({
 }));
 
 // ==========================================
-// 3. Auto-Release Escrow Daemon (7 Days)
-// ==========================================
-setInterval(async () => {
-    try {
-        // 查找锁定超过7天的订单
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); 
-        const expiredItems = await MarketItem.find({ status: 'reserved', locked_at: { $lte: sevenDaysAgo } });
-
-        for (let item of expiredItems) {
-            // 自动把托管资金打入卖家钱包
-            await User.findOneAndUpdate({ email: item.seller_id }, { $inc: { wallet_balance: item.price } });
-            
-            // 变更物品状态为已完成
-            item.status = 'completed';
-            await item.save();
-            console.log(`[Escrow Engine] Auto-released $${item.price} to ${item.seller_id} for item ${item._id}`);
-        }
-    } catch (e) { 
-        console.error("[Escrow Engine] Error:", e); 
-    }
-}, 1000 * 60 * 60); // 守护进程：每小时巡检一次数据库
-
-// ==========================================
-// 4. Cloudinary Configuration
+// 3. Cloudinary Configuration
 // ==========================================
 cloudinary.config({ 
     cloud_name: process.env.CLOUDINARY_NAME, 
@@ -142,25 +120,28 @@ const storage = new CloudinaryStorage({
 });
 const upload = multer({ storage });
 
-app.use(cors()); 
-app.use(express.json()); 
+app.use(cors());
+app.use(express.json());
 app.use(express.static(__dirname));
 
 // ==========================================
-// 5. Authentication APIs
+// 4. Authentication APIs
 // ==========================================
 app.post('/api/auth/send-code', async (req, res) => {
-    const { email } = req.body; 
+    const { email } = req.body;
     const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expire_at = new Date(Date.now() + 5 * 60000);
+
     try {
-        await VerifyCode.findOneAndUpdate({ email }, { code, expire_at: new Date(Date.now() + 5 * 60000) }, { upsert: true });
-        await fetch(GAS_URL, { 
-            method: 'POST', 
+        await VerifyCode.findOneAndUpdate({ email }, { code, expire_at }, { upsert: true });
+        // Request to Google Apps Script for SMTP sending
+        await fetch(GAS_URL, {
+            method: 'POST',
             body: JSON.stringify({ 
                 to: email, 
-                subject: "DormLift Access Code", 
-                html: `<div style="padding:20px;"><h2>Access Code</h2><p><b style="font-size:24px;color:#4f46e5;">${code}</b></p><p>Expires in 5 minutes.</p></div>` 
-            }) 
+                subject: "DormLift Super App Security Code", 
+                html: `<div style="font-family:sans-serif; padding:20px;"><h2>DormLift Hub Access</h2><p>Your verification code is: <b style="font-size:24px; color:#4f46e5;">${code}</b></p><p>Expires in 5 minutes.</p></div>` 
+            })
         });
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
@@ -169,21 +150,27 @@ app.post('/api/auth/send-code', async (req, res) => {
 app.post('/api/auth/register', async (req, res) => {
     const { email, code, password, ...userData } = req.body;
     try {
-        // "8888" 开发者测试后门
+        // "8888" is a bypass code for developer testing
         if (code !== "8888") {
             const vRecord = await VerifyCode.findOne({ email });
-            if (!vRecord || vRecord.code !== code || vRecord.expire_at < new Date()) return res.status(400).json({ success: false, msg: "Invalid code" });
+            if (!vRecord || vRecord.code !== code || vRecord.expire_at < new Date()) {
+                return res.status(400).json({ success: false, msg: "Invalid or expired code" });
+            }
         }
-        await new User({ ...userData, email, password: await bcrypt.hash(password, 10) }).save();
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = new User({ ...userData, email, password: hashedPassword });
+        await newUser.save();
         res.status(201).json({ success: true });
-    } catch (e) { res.status(400).json({ success: false, msg: "Registration error" }); }
+    } catch (e) { res.status(400).json({ success: false, msg: "Registration error or duplicate email/SID" }); }
 });
 
 app.post('/api/auth/login', async (req, res) => {
+    const { email, password } = req.body;
     try {
-        const user = await User.findOne({ $or: [{ email: req.body.email }, { student_id: req.body.email }] });
-        if (user && await bcrypt.compare(req.body.password, user.password)) {
-            const userObj = user.toObject(); delete userObj.password; 
+        const user = await User.findOne({ $or: [{ email }, { student_id: email }] });
+        if (user && await bcrypt.compare(password, user.password)) {
+            const userObj = user.toObject();
+            delete userObj.password; 
             res.json({ success: true, user: userObj });
         } else {
             res.status(401).json({ success: false });
@@ -192,152 +179,138 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 app.get('/api/user/detail/:email', async (req, res) => {
-    const user = await User.findOne({ email: req.params.email }, { password: 0 }); 
+    const user = await User.findOne({ email: req.params.email }, { password: 0 });
     res.json({ success: true, user });
 });
 
 // ==========================================
-// 6. Logistics APIs (物流引擎)
+// 5. Logistics Ecosystem APIs (Task)
 // ==========================================
 app.post('/api/task/create', upload.array('images', 5), async (req, res) => {
     try {
-        let pts = req.body.task_scale === 'Large' ? 5 : (req.body.task_scale === 'Medium' ? 3 : 1);
-        await new Task({ ...req.body, medal_points: pts, img_url: JSON.stringify(req.files ? req.files.map(f => f.path) : []) }).save();
+        let calculatedPoints = 1;
+        if (req.body.task_scale === 'Medium') calculatedPoints = 3;
+        if (req.body.task_scale === 'Large') calculatedPoints = 5;
+
+        const urls = req.files ? req.files.map(f => f.path) : [];
+        const newTask = new Task({ ...req.body, medal_points: calculatedPoints, img_url: JSON.stringify(urls) });
+        await newTask.save();
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.get('/api/task/all', async (req, res) => {
-    const list = await Task.find({ status: 'pending', helper_id: null }).sort({ created_at: -1 }); 
+    const list = await Task.find({ status: 'pending', helper_id: null }).sort({ created_at: -1 });
     res.json({ success: true, list });
 });
 
 app.post('/api/task/comment', async (req, res) => {
     try {
-        await Task.findByIdAndUpdate(req.body.task_id, { $push: { comments: req.body.comment } }); 
+        await Task.findByIdAndUpdate(req.body.task_id, { $push: { comments: req.body.comment } });
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/task/workflow', async (req, res) => {
     try {
-        const { task_id, ...updates } = req.body; 
+        const { task_id, ...updates } = req.body;
         const task = await Task.findById(task_id);
         
-        // 发放勋章积分
+        // Medal Reward Hook
         if (updates.status === 'completed' && task.status !== 'completed' && task.helper_id) {
-            let destText = task.to_addr.includes('@@') ? task.to_addr.split('@@')[1] : task.to_addr;
+            let destinationText = task.to_addr.includes('@@') ? task.to_addr.split('@@')[1] : task.to_addr;
             await User.findOneAndUpdate(
-                { email: task.helper_id }, 
+                { email: task.helper_id },
                 { 
-                    $inc: { medal_points: task.medal_points }, 
-                    $push: { point_history: { desc: `Logistics: ${destText.substring(0, 30)}`, points: task.medal_points, date: new Date() } } 
+                    $inc: { medal_points: task.medal_points },
+                    $push: { point_history: { desc: `Logistics Help: ${destinationText.substring(0, 30)}`, points: task.medal_points, date: new Date() } }
                 }
             );
         }
-        
+
         if (updates.status === 'pending') updates.helper_id = null;
-        await Task.findByIdAndUpdate(task_id, { $set: updates }); 
+        await Task.findByIdAndUpdate(task_id, { $set: updates });
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/task/delete', async (req, res) => {
-    await Task.findByIdAndDelete(req.body.task_id); 
+    await Task.findByIdAndDelete(req.body.task_id);
     res.json({ success: true });
 });
 
 // ==========================================
-// 7. Flea Market APIs (二手担保引擎 Escrow)
+// 6. Flea Market Ecosystem APIs (Escrow Trading)
 // ==========================================
 app.post('/api/market/create', upload.array('images', 5), async (req, res) => {
     try {
-        await new MarketItem({ ...req.body, img_url: JSON.stringify(req.files ? req.files.map(f => f.path) : []) }).save();
+        const urls = req.files ? req.files.map(f => f.path) : [];
+        const newItem = new MarketItem({ ...req.body, img_url: JSON.stringify(urls) });
+        await newItem.save();
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.get('/api/market/all', async (req, res) => {
-    const list = await MarketItem.find({ status: 'available' }).sort({ created_at: -1 }); 
+    const list = await MarketItem.find({ status: 'available' }).sort({ created_at: -1 });
     res.json({ success: true, list });
 });
 
 app.post('/api/market/comment', async (req, res) => {
-    try { 
-        await MarketItem.findByIdAndUpdate(req.body.item_id, { $push: { comments: req.body.comment } }); 
-        res.json({ success: true }); 
+    try {
+        await MarketItem.findByIdAndUpdate(req.body.item_id, { $push: { comments: req.body.comment } });
+        res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/market/workflow', async (req, res) => {
     try {
         const { item_id, status, buyer_id } = req.body;
-        const item = await MarketItem.findById(item_id);
         let updates = { status };
-
-        // [核心流] 买家下单支付，资金打入托管账户
-        if (status === 'reserved' && buyer_id) {
-            const buyer = await User.findOne({ email: buyer_id });
-            if (buyer.wallet_balance < item.price) {
-                return res.status(400).json({ success: false, msg: "INSUFFICIENT_FUNDS" });
-            }
-            await User.findOneAndUpdate({ email: buyer_id }, { $inc: { wallet_balance: -item.price } });
-            updates.buyer_id = buyer_id; 
-            updates.locked_at = new Date(); // 启动 7 天自动打款计时器
-        }
-
-        // [核心流] 买家确认收货，平台向卖家放款
-        if (status === 'completed' && item.status === 'reserved') {
-            await User.findOneAndUpdate({ email: item.seller_id }, { $inc: { wallet_balance: item.price } });
-        }
-
-        // [核心流] 交易取消，将资金退回给买家
-        if (status === 'available' && item.status === 'reserved') {
-            if (item.buyer_id) {
-                await User.findOneAndUpdate({ email: item.buyer_id }, { $inc: { wallet_balance: item.price } });
-            }
-            updates.buyer_id = null; 
-            updates.locked_at = null; // 取消计时器
-        }
-
-        await MarketItem.findByIdAndUpdate(item_id, { $set: updates }); 
+        if(buyer_id) updates.buyer_id = buyer_id;
+        // Escrow Cancellation -> Reset buyer
+        if(status === 'available') updates.buyer_id = null; 
+        
+        await MarketItem.findByIdAndUpdate(item_id, { $set: updates });
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.post('/api/market/delete', async (req, res) => {
     try {
-        await MarketItem.findByIdAndDelete(req.body.task_id); // 复用前端接口字段名 task_id -> item_id
+        await MarketItem.findByIdAndDelete(req.body.task_id); // Re-using task_id prop from frontend for generic delete
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
 // ==========================================
-// 8. Forum APIs (八卦社区)
+// 7. Campus Buzz Ecosystem APIs (Forum)
 // ==========================================
 app.post('/api/forum/create', upload.array('images', 5), async (req, res) => {
     try {
-        await new ForumPost({ ...req.body, img_url: JSON.stringify(req.files ? req.files.map(f => f.path) : []) }).save(); 
+        const urls = req.files ? req.files.map(f => f.path) : [];
+        const newPost = new ForumPost({ ...req.body, img_url: JSON.stringify(urls) });
+        await newPost.save();
         res.json({ success: true });
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
 app.get('/api/forum/all', async (req, res) => {
-    const list = await ForumPost.find().sort({ created_at: -1 }); 
+    const list = await ForumPost.find().sort({ created_at: -1 });
     res.json({ success: true, list });
 });
 
 app.post('/api/forum/interact', async (req, res) => {
     const { post_id, action, email, comment } = req.body;
     try {
-        if (action === 'like') {
+        if(action === 'like') {
             const p = await ForumPost.findById(post_id);
-            if (p.likes.includes(email)) {
+            if(p.likes.includes(email)) {
                 await ForumPost.findByIdAndUpdate(post_id, { $pull: { likes: email } });
             } else {
                 await ForumPost.findByIdAndUpdate(post_id, { $push: { likes: email } });
             }
-        } else if (action === 'comment') {
+        } else if(action === 'comment') {
             await ForumPost.findByIdAndUpdate(post_id, { $push: { comments: comment } });
         }
         res.json({ success: true });
@@ -345,8 +318,10 @@ app.post('/api/forum/interact', async (req, res) => {
 });
 
 // ==========================================
-// 9. Global Utilities
+// 8. Global Utilities
 // ==========================================
+
+// Unified Dashboard Fetch (Fetches Tasks, Market Items, and Forum Posts)
 app.post('/api/user/dashboard', async (req, res) => {
     const { email } = req.body;
     try {
@@ -357,14 +332,16 @@ app.post('/api/user/dashboard', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false }); }
 });
 
-// Dev Tool: Wipe DB
+// Dev Tool: Wipe entire database
 app.post('/api/dev/nuke', async (req, res) => {
-    await Task.deleteMany({}); 
-    await MarketItem.deleteMany({}); 
-    await ForumPost.deleteMany({}); 
-    await User.deleteMany({}); 
-    await VerifyCode.deleteMany({}); 
+    await Task.deleteMany({});
+    await MarketItem.deleteMany({});
+    await ForumPost.deleteMany({});
+    await User.deleteMany({});
+    await VerifyCode.deleteMany({});
     res.json({ success: true });
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log(`🚀 DormLift Super App V12.1 Active on ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 DormLift Super App V11.3 Active on Port ${PORT}`);
+});
