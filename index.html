@@ -3,459 +3,911 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DormLift Pro - Premium Campus Moving</title>
+    <title>DormLift Pro | The Campus Super App</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
 
     <style>
-        :root { 
-            --primary: #2563eb; --primary-hover: #1d4ed8; --bg: #f8fafc; 
-            --text-main: #0f172a; --text-muted: #64748b; --card: #ffffff; 
-            --border: #e2e8f0; --radius: 12px;
-            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05);
-            --shadow-hover: 0 20px 25px -5px rgba(0,0,0,0.1);
+        /* =============================================================
+           DESIGN SYSTEM: V19.0 Final Routing & DOM Sync Edition
+        ============================================================= */
+        :root {
+            --primary: #4f46e5;
+            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            --success: #059669;
+            --warning: #f59e0b;
+            --danger: #dc2626;
+            --medal: #d97706; 
+            --dark: #0f172a;
+            --text: #334155;
+            --muted: #64748b;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --radius-lg: 1.25rem;
+            --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            --shadow-premium: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
         }
-        
-        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text-main); -webkit-font-smoothing: antialiased; }
-        
-        /* --- 导航栏 --- */
-        nav { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); padding: 16px 5%; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10000; border-bottom: 1px solid var(--border); }
-        .logo { font-size: 24px; font-weight: 800; color: var(--primary); cursor: pointer; text-decoration: none; display: flex; align-items: center; gap: 8px; }
-        .nav-items { display: flex; align-items: center; gap: 24px; }
-        .nav-items a { color: var(--text-muted); text-decoration: none; font-weight: 600; font-size: 14px; transition: 0.2s; cursor: pointer; padding: 8px 12px; border-radius: 8px;}
-        .nav-items a:hover, .nav-items a.active { color: var(--primary); background: #eff6ff; }
-        .nav-btn { background: var(--text-main) !important; color: white !important; }
 
-        .container { max-width: 1150px; margin: 30px auto; padding: 0 20px; }
-        .page { display: none; animation: fadeIn 0.4s ease-out; } 
-        .page.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; overflow-x: hidden; }
         
-        /* --- 首页 Hero --- */
-        .hero-section { position: relative; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 24px; padding: 70px 30px; text-align: center; margin-bottom: 40px; border: 1px solid #bae6fd; }
-        .hero-content h1 { font-size: 52px; font-weight: 800; margin: 0 0 20px 0; letter-spacing: -1.5px; }
-        .hero-content h1 span { background: linear-gradient(45deg, var(--primary), #0ea5e9); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        
-        /* --- 通用组件 --- */
-        .pro-card { background: var(--card); border-radius: 16px; padding: 30px; border: 1px solid var(--border); box-shadow: var(--shadow-md); transition: 0.3s; }
-        .input-pro { width: 100%; padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 12px; margin-bottom: 16px; font-size: 15px; outline: none; transition: 0.2s; background: #f8fafc; box-sizing: border-box; font-family: inherit; }
-        .input-pro:focus { border-color: var(--primary); background: white; box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
-        .btn { padding: 14px 24px; border-radius: 12px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
-        .btn-secondary { background: #f1f5f9; color: var(--text-main); }
-        
-        /* --- 弹窗设计 --- */
-        .modal-overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); z-index: 99999; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .detail-box { background: white; border-radius: 24px; width: 100%; max-width: 900px; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; position: relative; box-shadow: 0 25px 50px rgba(0,0,0,0.25); }
-        .detail-body { display: flex; flex-wrap: wrap; height: 100%; overflow-y: auto; }
-        .detail-left { flex: 1.2; min-width: 320px; padding: 40px; border-right: 1px solid var(--border); background: #f8fafc; overflow-y: auto; }
-        .detail-right { flex: 1; min-width: 300px; padding: 40px; display: flex; flex-direction: column; background: white; }
+        .page { display: none !important; opacity: 0; }
+        .page.active { display: block !important; animation: slideUp 0.4s ease forwards; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- 🌟 图片预览样式 --- */
-        #img-preview-container { margin: 10px 0 20px 0; display: none; text-align: left; }
-        #img-preview { width: 120px; height: 120px; object-fit: cover; border-radius: 12px; border: 2px solid var(--primary); padding: 2px; background: white; }
+        nav { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); padding: 1rem 8%; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; border-bottom: 1px solid #e2e8f0; }
+        .brand { display: flex; align-items: center; gap: 10px; cursor: pointer; text-decoration: none; }
+        .brand-icon { width: 42px; height: 42px; background: var(--primary-gradient); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3); }
+        .brand-text { font-size: 1.5rem; font-weight: 800; color: var(--dark); letter-spacing: -1px; }
+        .nav-links { display: flex; align-items: center; gap: 2rem; }
+        .nav-links a { color: var(--text); text-decoration: none; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: 0.2s; }
+        .nav-links a:hover { color: var(--primary); }
+        .user-tag { background: rgba(79, 70, 229, 0.1); color: var(--primary); padding: 6px 18px; border-radius: 24px; font-size: 0.85rem; font-weight: 700; border: 1px solid rgba(79, 70, 229, 0.2); cursor: pointer; transition: 0.2s; }
+        .user-tag:hover { background: var(--primary); color: white; }
 
-        #map { height: 380px; border-radius: 16px; margin-bottom: 20px; border: 1px solid var(--border); }
-        .profile-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 30px; }
-        @media (max-width: 850px) { .profile-grid { grid-template-columns: 1fr; } .detail-body { flex-direction: column; } }
+        .container { max-width: 1200px; margin: 3rem auto; padding: 0 1.5rem; }
+        .card { background: var(--surface); border-radius: var(--radius-lg); padding: 2.5rem; box-shadow: var(--shadow-premium); border: 1px solid #eef2f6; margin-bottom: 2rem; }
+
+        .tab-container { display: flex; gap: 1rem; margin-bottom: 2rem; background: white; padding: 0.5rem; border-radius: 1rem; box-shadow: var(--shadow-sm); border: 1px solid #eef2f6; }
+        .tab-btn { flex: 1; padding: 1rem; text-align: center; font-weight: 800; font-size: 1.1rem; border-radius: 0.8rem; cursor: pointer; transition: 0.3s; color: var(--muted); border: none; background: transparent; }
+        .tab-btn:hover { background: #f8fafc; color: var(--dark); }
+        .tab-btn.active { background: var(--primary-gradient); color: white; box-shadow: 0 4px 10px rgba(79,70,229,0.3); }
         
-        .status-tag { font-size: 10px; padding: 4px 8px; border-radius: 6px; font-weight: 800; text-transform: uppercase; background: #fef3c7; color: #d97706; }
-        #loader { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.9); z-index: 100000; align-items: center; justify-content: center; flex-direction: column; }
+        .tab-content { display: none !important; }
+        .tab-content.active { display: block !important; animation: fadeIn 0.3s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .value-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 5rem; }
+        .value-card { padding: 2.5rem; text-align: left; border-top: 5px solid var(--primary); background: white; border-radius: var(--radius-lg); box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .value-card i { font-size: 2.5rem; margin-bottom: 1.5rem; color: var(--primary); display: block; }
+
+        .hub-container { display: flex; flex-direction: column; gap: 1rem; }
+        .hub-row { display: grid; grid-template-columns: 100px 1fr 130px; align-items: center; background: white; border-radius: 16px; padding: 1.5rem 2rem; border: 1px solid #eef2f6; transition: 0.3s; cursor: pointer; margin-bottom: 1rem; }
+        .hub-row:hover { transform: translateX(8px); border-color: var(--primary); box-shadow: var(--shadow-premium); }
+        .posted-col { font-size: 0.75rem; font-weight: 800; color: var(--muted); text-transform: uppercase; border-right: 2px solid #f1f5f9; line-height: 1.3; }
+        .posted-col span { display: block; font-size: 1.05rem; color: var(--dark); margin-top: 2px; }
+        .details-strip { padding: 0 2.5rem; display: flex; flex-direction: column; gap: 8px; }
+        .strip-header { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.05rem; color: var(--dark); }
+        .strip-route { font-size: 0.9rem; color: var(--muted); display: flex; align-items: center; gap: 12px; font-weight: 500; }
+        .strip-inventory { font-size: 0.85rem; color: var(--text); background: #f8fafc; padding: 6px 14px; border-radius: 8px; display: inline-flex; align-items: center; gap:10px; width: fit-content; border: 1px solid #f1f5f9; }
+        .reward-col { text-align: right; font-size: 1.6rem; font-weight: 900; color: var(--success); letter-spacing: -0.5px; }
+
+        .market-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.5rem; }
+        .market-card { background: white; border-radius: 1rem; overflow: hidden; border: 1px solid #eef2f6; cursor: pointer; transition: 0.3s; box-shadow: var(--shadow-sm); display: flex; flex-direction: column; }
+        .market-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-premium); border-color: var(--primary); }
+        .m-img { width: 100%; height: 200px; object-fit: cover; background: #f8fafc; border-bottom: 1px solid #eef2f6; }
+        .m-body { padding: 1.5rem; flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .m-title { font-size: 1.1rem; font-weight: 700; color: var(--dark); margin: 0 0 10px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .m-price { color: var(--success); font-size: 1.5rem; font-weight: 900; margin-bottom: 10px; }
+        .m-meta { font-size: 0.85rem; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+
+        .forum-feed { max-width: 750px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; }
+        .forum-card { background: white; border-radius: 1rem; padding: 2rem; border: 1px solid #eef2f6; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .f-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
+        .f-author { font-weight: 800; color: var(--dark); background: #f1f5f9; padding: 6px 14px; border-radius: 20px; font-size: 0.9rem; }
+        .f-content { font-size: 1.1rem; color: var(--text); line-height: 1.6; margin-bottom: 1.5rem; }
+        .f-images { display: flex; gap: 10px; overflow-x: auto; margin-bottom: 1.5rem; padding-bottom: 5px; }
+        .f-images img { height: 180px; border-radius: 10px; border: 1px solid #eef2f6; object-fit: cover; cursor: pointer; }
+
+        .kanban-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1.5rem; }
+        .kanban-col { background: rgba(241, 245, 249, 0.5); border-radius: 1.5rem; padding: 1.5rem; min-height: 400px; border: 2px dashed #cbd5e1; display:flex; flex-direction:column; transition: 0.4s ease;}
+        .kanban-header { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 1.1rem; color: var(--dark); margin-bottom: 1.5rem; }
+        .kanban-badge { background: white; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); color: var(--primary); border: 1px solid #eef2f6; }
+        .kanban-card { background: white; border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.2rem; box-shadow: 0 2px 5px rgba(0,0,0,0.02); border: 1.5px solid transparent; cursor: pointer; transition: 0.3s; position: relative; }
+        .kanban-card:hover { border-color: var(--primary); transform: translateY(-4px); box-shadow: var(--shadow-premium); }
+        .kb-role-tag { font-size: 0.65rem; padding: 4px 10px; border-radius: 6px; font-weight: 800; text-transform: uppercase; margin-bottom: 5px; display: inline-block; }
+        .kb-pub { background: #f1f5f9; color: var(--dark); }
+        .kb-help { background: var(--primary-gradient); color: white; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2); }
+        .empty-col-placeholder { flex:1; display:flex; align-items:center; justify-content:center; color:var(--muted); font-weight:600; font-size:0.95rem; border:2px dashed #e2e8f0; border-radius:1rem; padding:2rem; text-align:center;}
+
+        #map { height: 450px; border-radius: 1.5rem 1.5rem 0 0; border: 1px solid #e2e8f0; z-index: 10; border-bottom: none; }
+        #modal-map { height: 280px; border-radius: 1.5rem; border: 2px solid #eef2f6; z-index: 10; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 1.5rem; display: none; }
+        .route-info-strip { background: var(--dark); color: white; padding: 1.25rem 2.5rem; border-radius: 0 0 1.5rem 1.5rem; display: flex; justify-content: space-around; font-weight: 700; margin-bottom: 2.5rem; border-bottom: 4px solid var(--primary); }
+        .leaflet-routing-container { display: none !important; }
+        .custom-pin { background: transparent; border: none; } .pin-wrapper { background: white; border: 2.5px solid var(--primary); border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        
+        .btn { background: var(--primary-gradient); color: white; padding: 1rem 2rem; border: none; border-radius: 12px; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; transition: 0.3s; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 12px 20px -5px rgba(79, 70, 229, 0.4); }
+        .btn:disabled { opacity: 0.7; cursor: not-allowed; transform: none; box-shadow: none; }
+        .btn-outline { background: white; color: var(--text); border: 2px solid #e2e8f0; }
+        .btn-outline:hover { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+        .btn-danger { background: #fee2e2; color: var(--danger); border: 1.5px solid #fecaca; }
+        
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
+        input, select, textarea { width: 100%; padding: 1rem 1.25rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; font-family: inherit; font-size: 1rem; transition: 0.2s; }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); outline: none; background: white; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1); }
+        label { font-size: 0.8rem; font-weight: 800; color: var(--muted); margin-bottom: 0.6rem; display: block; text-transform: uppercase; letter-spacing: 1px; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.7); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+        .modal-content { background: white; width: 95%; max-width: 850px; max-height: 92vh; overflow-y: auto; border-radius: 2rem; padding: 3.5rem; position: relative; }
+        .interaction-box { background: #f8fafc; border-radius: 1.5rem; padding: 2rem; margin-top: 2.5rem; border: 1px solid #eef2f6; }
+        .comment-item { background: white; padding: 1.25rem; border-radius: 1.2rem; margin-bottom: 1.25rem; border: 1px solid #f1f5f9; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: 0.3s; }
+        .comment-reply { margin-left: 3.5rem; margin-top: 1rem; border-left: 4px solid var(--primary); padding-left: 1.5rem; background: #fafafa; border-radius: 0 1.2rem 1.2rem 0; }
+        .reply-btn { font-size: 0.75rem; color: var(--primary); font-weight: 800; cursor: pointer; text-transform: uppercase; margin-left: 15px; }
+        .reply-btn:hover { text-decoration: underline; }
+        .reply-hint { display: none; background: #eef2ff; padding: 12px 20px; border-radius: 12px; margin-bottom: 15px; font-size: 0.88rem; border-left: 6px solid var(--primary); }
+        .thumb-strip { display: flex; gap: 14px; overflow-x: auto; padding: 12px 0; margin-bottom: 2rem; }
+        .thumb-img { width: 120px; height: 120px; object-fit: cover; border-radius: 14px; cursor: pointer; border: 2px solid #f1f5f9; transition: 0.3s; }
+        .thumb-img:hover { transform: scale(1.04); border-color: var(--primary); box-shadow: var(--shadow-sm); }
+        .status-badge { padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .payment-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: white; border-radius: 1.5rem; padding: 2.5rem; margin-bottom: 2rem; position: relative; overflow: hidden; box-shadow: 0 15px 25px -5px rgba(0,0,0,0.3); }
+        .payment-card::after { content: ''; position: absolute; right: -20px; top: -50px; width: 200px; height: 200px; background: rgba(255,255,255,0.05); border-radius: 50%; }
+        .cc-input-group { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 12px 15px; display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
+        .cc-input-group i { color: #cbd5e1; font-size: 1.2rem; }
+        .cc-input-group input { background: transparent; border: none; color: white; padding: 5px; font-size: 1.2rem; box-shadow: none; width: 100%; font-family: monospace; letter-spacing: 2px;}
+        .cc-input-group input:focus { outline: none; border: none; box-shadow: none; background: transparent; }
     </style>
 </head>
 <body>
 
-    <div id="loader">
-        <i class="fa-solid fa-circle-notch fa-spin fa-3x" style="color:var(--primary); margin-bottom: 15px;"></i>
-        <p style="font-weight:700;">Processing...</p>
-    </div>
+<nav>
+    <a class="brand" onclick="navigate('home')"><div class="brand-icon"><i class="fas fa-layer-group"></i></div><div class="brand-text">DormLift Hub</div></a>
+    <div class="nav-links" id="menu"></div>
+</nav>
 
-    <nav>
-        <a href="javascript:void(0)" class="logo" onclick="navigate('home')"><i class="fa-solid fa-cube"></i> DormLift Pro</a>
-        <div class="nav-items" id="nav-menu"></div>
-    </nav>
-
-    <div id="auth-modal" class="modal-overlay">
-        <div class="pro-card" style="width:100%; max-width:420px; position:relative;">
-            <button class="close-btn" style="position:absolute; top:20px; right:20px; border:none; background:none; font-size:24px; cursor:pointer; color:#94a3b8;" onclick="closeModal('auth-modal')">&times;</button>
-            <h2 id="auth-title" style="text-align:center; font-weight:800; margin-top:0;">Welcome</h2>
+<div class="container">
+    <div id="home" class="page active">
+        <section class="card" style="text-align:center; padding: 7rem 2rem; border:none; background: radial-gradient(circle at top right, #ffffff 0%, #f1f5f9 100%);">
+            <h1 style="font-size:4.5rem; margin:0; line-height:1; letter-spacing:-2.5px;">The Campus<br><span style="color:var(--primary)">Super App.</span></h1>
+            <p style="color:var(--muted); font-size:1.3rem; max-width:650px; margin: 2.5rem auto;">Verified logistics, flea market escrow, and campus forum exclusively for UoA students.</p>
+            <div style="display:flex; justify-content:center; gap:1.5rem;">
+                <button class="btn" style="padding: 1.2rem 4.5rem; font-size:1.1rem;" onclick="navigate('post')">Publish to Network</button>
+                <button class="btn btn-outline" style="padding: 1.2rem 4.5rem; font-size:1.1rem;" onclick="navigate('hall')">Explore Discoveries</button>
+            </div>
             
-            <div id="login-form">
-                <input type="text" id="l-id" placeholder="Student ID" class="input-pro">
-                <input type="password" id="l-pw" placeholder="Password" class="input-pro">
-                <button class="btn btn-primary" style="width:100%;" onclick="handleLogin()">Sign In</button>
-                <p style="text-align:center; font-size:14px; margin-top:20px;">New user? <a href="javascript:void(0)" onclick="toggleAuth(false)" style="color:var(--primary); font-weight:700;">Create account</a></p>
-                <div style="border-top:1px dashed #ddd; margin-top:30px; padding-top:20px; text-align:center;">
-                    <a href="javascript:void(0)" style="font-size:12px; color:#94a3b8; text-decoration:none;" onclick="resetDatabase()">
-                        <i class="fa-solid fa-screwdriver-wrench"></i> Developer Reset (Code: 8888)
-                    </a>
-                </div>
+            <div class="value-grid">
+                <div class="value-card"><i class="fas fa-tags"></i><h3 style="font-size:1.5rem; margin:0 0 10px 0;">Peer Pricing</h3><p style="color:var(--muted); margin:0;">Zero platform commission fees on logistics or items.</p></div>
+                <div class="value-card" style="border-color:var(--success);"><i class="fas fa-shield-alt" style="color:var(--success);"></i><h3 style="font-size:1.5rem; margin:0 0 10px 0;">Escrow Security</h3><p style="color:var(--muted); margin:0;">Funds are safely held in the platform wallet until buyer confirms receipt.</p></div>
+                <div class="value-card" style="border-color:var(--warning);"><i class="fas fa-shield-check" style="color:var(--warning);"></i><h3 style="font-size:1.5rem; margin:0 0 10px 0;">Verified Trust</h3><p style="color:var(--muted); margin:0;">Only UoA members with verified SIDs can trade, move, or post buzz dynamic.</p></div>
             </div>
-
-            <div id="reg-form" style="display:none;">
-                <input type="text" id="r-id" placeholder="Student ID" class="input-pro">
-                <div style="display:flex; gap:10px;"><input type="text" id="r-first" placeholder="First Name" class="input-pro"><input type="text" id="r-given" placeholder="Last Name" class="input-pro"></div>
-                <input type="text" id="r-phone" placeholder="Mobile Phone" class="input-pro">
-                <div style="display:flex; gap:10px;">
-                    <input type="email" id="r-email" placeholder="Email Address" class="input-pro" style="margin-bottom:0;">
-                    <button class="btn" style="background:#0f172a; color:white; min-width:90px;" onclick="sendCode('r-email')">Code</button>
-                </div>
-                <p style="font-size:11px; color:#94a3b8; margin:8px 0 16px 5px;">A verification code will be sent.</p>
-                <input type="text" id="r-code" placeholder="6-Digit Code (or 8888)" class="input-pro">
-                <input type="text" id="r-anon" placeholder="Display Nickname" class="input-pro">
-                <input type="password" id="r-pw" placeholder="Create Password" class="input-pro">
-                <input type="password" id="r-pw-confirm" placeholder="Confirm Password" class="input-pro">
-                <button class="btn btn-primary" style="width:100%;" onclick="handleRegister()">Register & Start</button>
-                <p style="text-align:center; font-size:14px; margin-top:20px;"><a href="javascript:void(0)" onclick="toggleAuth(true)">Back to login</a></p>
-            </div>
-        </div>
+        </section>
     </div>
 
-    <div id="task-detail-modal" class="modal-overlay">
-        <div class="detail-box">
-            <button style="position:absolute; top:20px; right:20px; border:none; background:none; font-size:28px; cursor:pointer; color:#94a3b8; z-index:1000;" onclick="closeModal('task-detail-modal')">&times;</button>
-            <div class="detail-body" id="detail-body-content">
-                </div>
-        </div>
-    </div>
-
-    <div class="container">
-        <div id="home" class="page active">
-            <div class="hero-section">
-                <div class="hero-content">
-                    <h1>Campus moving, <span>reimagined.</span></h1>
-                    <p style="font-size:18px; color:var(--text-muted); max-width:600px; margin:0 auto 30px;">Connect with verified fellow students for reliable, affordable moving help.</p>
-                    <div style="display: flex; justify-content: center; gap: 16px;">
-                        <button class="btn btn-primary" onclick="requireAuth('post')">Post a Request <i class="fa-solid fa-arrow-right"></i></button>
-                        <button class="btn btn-secondary" onclick="navigate('explore')">Explore Market</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="explore" class="page">
-            <h2 style="font-weight:800; margin-bottom:30px;">Marketplace</h2>
-            <div id="task-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px;"></div>
+    <div id="hall" class="page">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
+            <h2 style="font-size:2.5rem; margin:0; letter-spacing:-1.5px;">Discovery Hub</h2>
+            <button class="btn btn-outline btn-sm" style="border-radius:50px; padding: 0.8rem 1.8rem;" onclick="loadHall()"><i class="fas fa-sync-alt"></i> Refresh Feed</button>
         </div>
         
-        <div id="post" class="page">
-            <div class="pro-card" style="max-width: 800px; margin: 0 auto; padding:40px;">
-                <h2 style="margin-top:0; font-weight:800;">Create a Request</h2>
-                <div id="map"></div>
-                
-                <div style="display:flex; gap:20px;">
-                    <div style="flex:1;">
-                        <label style="font-size:12px; font-weight:700;">Pick-up Point (🌟 Editable)</label>
-                        <input type="text" id="p_from" class="input-pro" placeholder="Select on map or type">
-                    </div>
-                    <div style="flex:1;">
-                        <label style="font-size:12px; font-weight:700;">Drop-off Point (🌟 Editable)</label>
-                        <input type="text" id="p_to" class="input-pro" placeholder="Select on map or type">
-                    </div>
-                </div>
-
-                <div style="display:flex; gap:20px;">
-                    <div style="flex:1;"><label style="font-size:12px; font-weight:700;">Preferred Date</label><input type="datetime-local" id="p_dt" class="input-pro"></div>
-                    <div style="flex:1;"><label style="font-size:12px; font-weight:700;">Reward Offer</label><input type="text" id="p_reward" class="input-pro" placeholder="e.g. $40"></div>
-                </div>
-
-                <div style="margin-bottom:15px;">
-                    <label style="font-size:12px; font-weight:700;">Elevator Available?</label>
-                    <select id="p_elevator" class="input-pro">
-                        <option value="No">No Elevator (Stairs)</option>
-                        <option value="Yes">Yes (Elevator Available)</option>
-                    </select>
-                </div>
-
-                <label style="font-size:12px; font-weight:700;">Items Description</label>
-                <textarea id="p_items" class="input-pro" rows="3" placeholder="List your items..."></textarea>
-                
-                <div id="img-preview-container">
-                    <p style="font-size:12px; font-weight:700;">Thumbnail Preview:</p>
-                    <img id="img-preview" src="">
-                </div>
-
-                <label style="font-size:12px; font-weight:700;">Upload Photo (Optional)</label>
-                <input type="file" id="p_file" accept="image/*" class="input-pro" onchange="handleImagePreview(this)">
-                
-                <button class="btn btn-primary" style="width:100%; height:55px;" onclick="createTask()">Publish Request</button>
-            </div>
+        <div class="tab-container">
+            <button class="tab-btn active" id="btn_hall_logistics" onclick="switchHall('logistics')">Peer Logistics</button>
+            <button class="tab-btn" id="btn_hall_market" onclick="switchHall('market')">Flea Market</button>
+            <button class="tab-btn" id="btn_hall_forum" onclick="switchHall('forum')">Campus Buzz</button>
         </div>
 
-        <div id="prof" class="page">
-            <div class="profile-grid">
-                <div class="pro-card">
-                    <h3><i class="fa-solid fa-user-gear"></i> Account Settings</h3>
-                    <div id="profile-form-area"></div>
+        <div id="hall_logistics" class="tab-content active"><div id="list_logistics" class="hub-container"></div></div>
+        <div id="hall_market" class="tab-content"><div id="list_market" class="market-grid"></div></div>
+        <div id="hall_forum" class="tab-content"><div id="list_forum" class="forum-feed"></div></div>
+    </div>
+
+    <div id="post" class="page">
+        <h2 style="font-size:2.5rem; margin:0 0 2rem 0; letter-spacing:-1.5px;">Publish to Network</h2>
+        <div class="tab-container">
+            <button class="tab-btn active" id="btn_post_logistics" onclick="switchPost('logistics')">Logistics Request</button>
+            <button class="tab-btn" id="btn_post_market" onclick="switchPost('market')">Sell Item</button>
+            <button class="tab-btn" id="btn_post_forum" onclick="switchPost('forum')">Post Buzz</button>
+        </div>
+
+        <div id="post_logistics" class="tab-content active card" style="padding:0; overflow:hidden;">
+            <div id="map"></div>
+            <div class="route-info-strip"><span><i class="fas fa-route"></i> REAL DISTANCE: <b id="distVal">0.00</b> km</span><span><i class="fas fa-clock"></i> <b id="timeVal">0</b> min</span></div>
+            <form id="form_logistics" style="padding: 0 3rem 3rem;" onsubmit="submitLogistics(event)">
+                <div class="form-grid"><div><label>Pickup Building</label><input type="text" id="p_from" readonly required placeholder="Map pin (Start)"></div><div><label>Destination</label><input type="text" id="p_to" readonly required placeholder="Map pin (End)"></div></div>
+                <div class="form-grid"><div><label>Date & Time</label><input type="datetime-local" id="p_date" required></div><div><label>Reward (NZD)</label><input type="text" id="p_reward" required></div></div>
+                <label>Inventory & Notes</label><textarea id="p_desc" rows="4" required></textarea>
+                <div class="form-grid" style="margin-top:1.5rem; margin-bottom:2rem; background:#fffbeb; padding:1.5rem; border-radius:12px;">
+                    <div><label style="color:var(--medal);">Task Scale</label><select id="p_scale"><option value="Small">Small Task (1 Pt)</option><option value="Medium">Medium Task (3 Pts)</option><option value="Large">Large Task (5 Pts)</option></select></div>
+                    <div style="display:flex; align-items:center; padding-top:1.5rem;"><input type="checkbox" id="p_elevator" style="margin-right:12px; transform:scale(1.2);"><label style="margin:0; text-transform:none;">Elevator Available</label></div>
                 </div>
-                <div class="pro-card">
-                    <h3><i class="fa-solid fa-list-check"></i> My Activities</h3>
-                    <div id="profile-tasks-area"></div>
-                </div>
-            </div>
-            <button class="btn" style="background:#ef4444; color:white; width:100%; margin-top:30px;" onclick="logout()">Sign Out</button>
+                <label>Photos (Max 5)</label><input type="file" id="p_file" multiple accept="image/*" onchange="previewFiles(event, 'p_preview')"><div id="p_preview" class="thumb-strip"></div>
+                <button type="submit" class="btn" style="width:100%; margin-top:1rem; padding:1.5rem;">Broadcast Task <i class="fas fa-paper-plane"></i></button>
+            </form>
+        </div>
+
+        <div id="post_market" class="tab-content card">
+            <form id="form_market" onsubmit="submitMarket(event)">
+                <div class="form-grid"><div><label>Item Title</label><input type="text" id="m_title" required></div><div><label>Price (NZD)</label><input type="number" id="m_price" required></div></div>
+                <div class="form-grid"><div><label>Condition</label><select id="m_cond"><option>Brand New</option><option>Like New</option><option>Good</option><option>Fair</option></select></div><div><label>Pickup Location</label><input type="text" id="m_loc" required></div></div>
+                <label>Description & Specs</label><textarea id="m_desc" rows="4" required></textarea>
+                <label>Photos (Crucial)</label><input type="file" id="m_file" multiple accept="image/*" required onchange="previewFiles(event, 'm_preview')"><div id="m_preview" class="thumb-strip"></div>
+                <button type="submit" class="btn" style="width:100%; margin-top:1rem; padding:1.5rem;">List Item in Market <i class="fas fa-store"></i></button>
+            </form>
+        </div>
+
+        <div id="post_forum" class="tab-content card">
+            <form id="form_forum" onsubmit="submitForum(event)">
+                <label>Campus Buzz</label><textarea id="f_content" rows="6" placeholder="What's happening..." required style="font-size:1.1rem; padding:1.5rem;"></textarea>
+                <label style="margin-top:1.5rem;">Attach Media (Optional)</label><input type="file" id="f_file" multiple accept="image/*" onchange="previewFiles(event, 'f_preview')"><div id="f_preview" class="thumb-strip"></div>
+                <button type="submit" class="btn" style="width:100%; margin-top:1rem; padding:1.5rem;">Post to Campus Buzz <i class="fas fa-fire"></i></button>
+            </form>
         </div>
     </div>
 
-    <script>
-        const API = window.location.origin + '/api';
-        let user = JSON.parse(localStorage.getItem('user')) || null;
-        let map, markers = [], allTasksData = [];
-        const DEFAULT_IMG = "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=600";
-
-        window.onload = () => { renderNav(); navigate('home'); };
-
-        /* --- 界面导航 --- */
-        function renderNav() {
-            const nav = document.getElementById('nav-menu');
-            if (user) {
-                nav.innerHTML = `
-                    <a href="javascript:void(0)" onclick="navigate('explore')">Explore</a>
-                    <a href="javascript:void(0)" onclick="navigate('post')">Post Task</a>
-                    <a href="javascript:void(0)" onclick="navigate('prof')"><i class="fa-regular fa-circle-user"></i> ${user.anonymous_name || 'Me'}</a>
-                `;
-            } else {
-                nav.innerHTML = `<a href="javascript:void(0)" onclick="navigate('explore')">Explore</a><a href="javascript:void(0)" class="nav-btn" onclick="openModal('auth-modal'); toggleAuth(true)">Sign In</a>`;
-            }
-        }
-
-        function navigate(p) {
-            document.querySelectorAll('.page').forEach(x => x.classList.remove('active'));
-            document.getElementById(p).classList.add('active');
-            if(p === 'explore') loadTasks(); 
-            if(p === 'post') setTimeout(initMap, 100); 
-            if(p === 'prof') loadProfile();
-        }
-
-        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-        function toggleAuth(isL) { 
-            document.getElementById('login-form').style.display=isL?'block':'none'; 
-            document.getElementById('reg-form').style.display=isL?'none':'block'; 
-            document.getElementById('auth-title').innerText = isL ? 'Welcome Back' : 'Join Community';
-        }
-        function showLoader(s) { document.getElementById('loader').style.display = s ? 'flex' : 'none'; }
-        function requireAuth(target) { if (!user) openModal('auth-modal'); else navigate(target); }
-
-        /* --- 🌟 图片预览预览功能 --- */
-        function handleImagePreview(input) {
-            const preview = document.getElementById('img-preview');
-            const container = document.getElementById('img-preview-container');
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = e => { preview.src = e.target.result; container.style.display = 'block'; };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        /* --- 核心 Auth 逻辑 --- */
-        async function sendCode(id) {
-            const email = document.getElementById(id).value; if(!email) return alert("Enter email");
-            showLoader(true);
-            try { await fetch(`${API}/auth/send-code`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ email }) }); showLoader(false); alert("Verification code sent!"); } catch(e) { showLoader(false); }
-        }
-
-        async function handleRegister() {
-            const pw = document.getElementById('r-pw').value;
-            if (pw !== document.getElementById('r-pw-confirm').value) return alert("Passwords match error.");
-            
-            const body = { 
-                student_id: document.getElementById('r-id').value, 
-                first_name: document.getElementById('r-first').value, 
-                given_name: document.getElementById('r-given').value, 
-                phone: document.getElementById('r-phone').value, // 🌟 补全字段
-                email: document.getElementById('r-email').value, 
-                code: document.getElementById('r-code').value, 
-                anonymous_name: document.getElementById('r-anon').value, 
-                password: pw 
-            };
-            
-            showLoader(true);
-            try { 
-                const r = await fetch(`${API}/auth/register`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) }); 
-                const res = await r.json(); showLoader(false);
-                if(res.success) { alert("Registration successful!"); toggleAuth(true); } else alert(res.message);
-            } catch(e) { showLoader(false); }
-        }
-
-        async function handleLogin() {
-            showLoader(true);
-            try { 
-                const r = await fetch(`${API}/auth/login`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ student_id: document.getElementById('l-id').value, password: document.getElementById('l-pw').value }) }); 
-                const res = await r.json(); showLoader(false);
-                if(res.success) { user = res.user; localStorage.setItem('user', JSON.stringify(user)); closeModal('auth-modal'); renderNav(); navigate('explore'); } else alert(res.message);
-            } catch(e) { showLoader(false); }
-        }
-
-        function logout() { localStorage.clear(); location.reload(); }
-
-        /* --- 🌟 地图与地址处理 (可编辑地址) --- */
-        function initMap() {
-            if(map) { map.invalidateSize(); return; }
-            map = L.map('map').setView([-36.8509, 174.7645], 13);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
-            map.on('click', async e => {
-                if(markers.length >= 2) { markers.forEach(m => map.removeLayer(m)); markers = []; }
-                const m = L.marker(e.latlng).addTo(map); markers.push(m);
-                const isPickup = markers.length === 1;
-                const field = isPickup ? document.getElementById('p_from') : document.getElementById('p_to');
-                field.value = "Locating...";
-                try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`);
-                    const d = await res.json();
-                    const addr = [d.address.road, d.address.suburb, d.address.city].filter(Boolean).join(', ');
-                    field.value = addr || d.display_name;
-                } catch (err) { field.value = `${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`; }
-            });
-        }
-
-        /* --- 任务逻辑 --- */
-        async function createTask() {
-            const p_from = document.getElementById('p_from').value;
-            const p_to = document.getElementById('p_to').value;
-            if(!p_from || !p_to || p_from === "Locating...") return alert("Please set addresses.");
-            
-            showLoader(true); 
-            const fd = new FormData();
-            fd.append('publisher_id', user.student_id); 
-            fd.append('move_date', document.getElementById('p_dt').value.split('T')[0] || '');
-            fd.append('from_addr', p_from);
-            fd.append('to_addr', p_to);
-            fd.append('reward', document.getElementById('p_reward').value || 'Negotiable');
-            fd.append('has_elevator', document.getElementById('p_elevator').value); // 🌟 发送电梯状态
-            fd.append('items_desc', document.getElementById('p_items').value);
-            if(document.getElementById('p_file').files[0]) fd.append('task_image', document.getElementById('p_file').files[0]);
-            
-            try { 
-                const r = await fetch(`${API}/task/create`, { method: 'POST', body: fd });
-                const res = await r.json(); showLoader(false);
-                if(res.success) { alert("Task Published!"); navigate('explore'); } else alert(res.message);
-            } catch (e) { showLoader(false); alert("Upload failed."); }
-        }
-
-        async function loadTasks() {
-            try {
-                const r = await fetch(`${API}/task/all`); const d = await r.json(); allTasksData = d.list;
-                const container = document.getElementById('task-list');
-                if (!d.list || d.list.length === 0) return container.innerHTML = `<p style="grid-column:1/-1;text-align:center;padding:50px;">No active tasks.</p>`;
-                
-                container.innerHTML = d.list.map(t => `
-                    <div class="pro-card">
-                        <img src="${t.img_url || DEFAULT_IMG}" style="width:100%; height:160px; object-fit:cover; border-radius:10px; margin-bottom:15px;">
-                        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                            <span style="font-weight:800; color:var(--primary); font-size:18px;">${t.reward}</span>
-                            <span class="status-tag">★ 5.0</span>
-                        </div>
-                        <h4 style="margin:0 0 15px 0;">${t.anonymous_name}'s Request</h4>
-                        <div style="display:flex; gap:10px;">
-                            <button class="btn btn-secondary" style="flex:1" onclick="viewTaskDetail('${t.id}')">Details</button>
-                            <button class="btn btn-primary" style="flex:1" onclick="requireAuth(() => acceptTask('${t.id}'))">Accept</button>
-                        </div>
-                    </div>`).join('');
-            } catch (e) {}
-        }
-
-        /* --- 详情与留言逻辑 --- */
-        function viewTaskDetail(taskId) {
-            const t = allTasksData.find(x => x.id === taskId); if(!t) return;
-            const comsHtml = (t.comments || []).map(c => `
-                <div style="background:#f1f5f9; padding:12px; border-radius:12px; margin-bottom:10px; border: 1px solid #e2e8f0;">
-                    <div style="font-size:11px; font-weight:800; color:var(--primary); margin-bottom:4px;">${c.name}</div>
-                    <div style="font-size:13px;">${c.text}</div>
-                </div>`).join('');
-
-            document.getElementById('detail-body-content').innerHTML = `
-                <div class="detail-left">
-                    <h2 style="color:var(--primary); margin-top:0; font-size:28px;">${t.reward}</h2>
-                    <p style="font-size:14px; color:var(--text-muted); margin-bottom:20px;">Elevator: <b>${t.has_elevator || 'No'}</b></p>
-                    <img src="${t.img_url || DEFAULT_IMG}" style="width:100%; border-radius:15px; margin-bottom:20px; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
-                    <p><b>Items:</b> ${t.items_desc}</p>
-                    <div style="background:white; padding:15px; border-radius:12px; border:1px solid var(--border);">
-                        <p style="margin:0 0 8px 0; font-size:13px;"><i class="fa-solid fa-circle-dot" style="color:var(--primary);width:20px;"></i> ${t.from_addr}</p>
-                        <p style="margin:0; font-size:13px;"><i class="fa-solid fa-location-dot" style="color:#ef4444;width:20px;"></i> ${t.to_addr}</p>
-                    </div>
-                    <button class="btn btn-primary" style="width:100%; margin-top:25px;" onclick="acceptTask('${t.id}')">Accept This Task</button>
+    <div id="profile" class="page">
+        <div style="display:grid; grid-template-columns: 1fr 300px 300px; gap:1.5rem; margin-bottom:2rem;">
+            <div class="card" style="margin:0;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
+                    <h2 style="margin:0; font-size:1.8rem; letter-spacing:-1px;">UoA Identity</h2>
+                    <button class="btn btn-outline btn-sm" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
                 </div>
-                <div class="detail-right">
-                    <h3 style="margin-top:0; border-bottom:1px solid #eee; padding-bottom:15px;">Discussion</h3>
-                    <div style="flex-grow:1; overflow-y:auto; padding-right:5px;">${comsHtml || '<p style="color:#94a3b8; font-size:13px; text-align:center; padding:40px 0;">No messages yet.</p>'}</div>
-                    ${user ? `
-                    <div style="display:flex; gap:10px; padding-top:20px; border-top:1px solid #eee;">
-                        <input type="text" id="com-txt" class="input-pro" style="margin-bottom:0;" placeholder="Ask...">
-                        <button class="btn btn-primary" onclick="postComment('${t.id}')">Send</button>
-                    </div>` : '<p style="font-size:12px; text-align:center;">Login to join discussion.</p>'}
-                </div>`;
-            openModal('task-detail-modal');
-        }
+                <div id="profileDetails" class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:1rem; margin:0;"></div>
+            </div>
+            
+            <div class="card" style="margin:0; border-left: 8px solid var(--success); display:flex; flex-direction:column; justify-content:center; background:#f0fdf4;">
+                <h3 style="margin:0; color:var(--success);">Virtual Wallet</h3>
+                <div style="font-size:3.5rem; font-weight:900; color:var(--success);">💰 <span id="p_wallet">0</span></div>
+                <p style="color:var(--success); font-size:0.85rem; font-weight:800; margin-top:0.5rem;">Used for Market Escrow</p>
+            </div>
 
-        async function postComment(taskId) {
-            const text = document.getElementById('com-txt').value; if(!text) return;
-            try { 
-                await fetch(`${API}/task/comment`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({task_id:taskId, user_id:user.student_id, name:user.anonymous_name, text}) }); 
-                viewTaskDetail(taskId); // 刷新详情弹窗
+            <div class="card" style="margin:0; border-left: 8px solid var(--warning); background: linear-gradient(to right, #fffbeb, #ffffff); display:flex; flex-direction:column; justify-content:center;">
+                <h3 style="margin:0; color:var(--medal);">Medal Points</h3>
+                <div style="font-size:3.5rem; font-weight:900; color:var(--medal);">🏅 <span id="p_medals">0</span></div>
+                <button class="btn btn-outline btn-sm" style="margin-top:1rem; border-color:#fcd34d; color:var(--medal);" onclick="document.getElementById('pointsModal').style.display='block'">View Point History</button>
+            </div>
+        </div>
+
+        <div class="card" style="background:transparent; border:none; box-shadow:none; padding:0;">
+            <h2 style="font-size:2.2rem; margin:0 0 1.5rem 0; letter-spacing:-1px;"><i class="fas fa-layer-group" style="color:var(--primary); margin-right:10px;"></i> My Dashboard</h2>
+            
+            <div class="tab-container" style="background:#f1f5f9; padding:0.5rem; border-radius:1rem;">
+                <button class="tab-btn active" id="btn_prof_kb_log" onclick="switchProf('kb_log')">Logistics Workflow</button>
+                <button class="tab-btn" id="btn_prof_kb_mar" onclick="switchProf('kb_mar')">Market Listings</button>
+                <button class="tab-btn" id="btn_prof_kb_for" onclick="switchProf('kb_for')">My Buzz Posts</button>
+            </div>
+            
+            <div id="kb_log" class="tab-content active">
+                <div class="kanban-board">
+                    <div class="kanban-col"><div class="kanban-header"><span><i class="fas fa-hourglass-half" style="color:var(--warning);"></i> Pending</span><span class="kanban-badge" id="cnt_log_pend">0</span></div><div id="col_log_pend" style="flex:1; display:flex; flex-direction:column;"></div></div>
+                    <div class="kanban-col"><div class="kanban-header"><span><i class="fas fa-truck-ramp-box" style="color:var(--primary);"></i> In Progress</span><span class="kanban-badge" id="cnt_log_prog">0</span></div><div id="col_log_prog" style="flex:1; display:flex; flex-direction:column;"></div></div>
+                    <div class="kanban-col"><div class="kanban-header"><span><i class="fas fa-check-circle" style="color:var(--success);"></i> History</span><span class="kanban-badge" id="cnt_log_hist">0</span></div><div id="col_log_hist" style="flex:1; display:flex; flex-direction:column;"></div></div>
+                </div>
+            </div>
+
+            <div id="kb_mar" class="tab-content">
+                <div class="kanban-board">
+                    <div class="kanban-col"><div class="kanban-header"><span><i class="fas fa-store" style="color:var(--success);"></i> Available</span><span class="kanban-badge" id="cnt_mar_pend">0</span></div><div id="col_mar_pend" style="flex:1; display:flex; flex-direction:column;"></div></div>
+                    <div class="kanban-col"><div class="kanban-header"><span><i class="fas fa-lock" style="color:var(--warning);"></i> Reserved (Escrow)</span><span class="kanban-badge" id="cnt_mar_prog">0</span></div><div id="col_mar_prog" style="flex:1; display:flex; flex-direction:column;"></div></div>
+                    <div class="kanban-col"><div class="kanban-header"><span><i class="fas fa-handshake" style="color:var(--primary);"></i> Sold / Released</span><span class="kanban-badge" id="cnt_mar_hist">0</span></div><div id="col_mar_hist" style="flex:1; display:flex; flex-direction:column;"></div></div>
+                </div>
+            </div>
+
+            <div id="kb_for" class="tab-content">
+                <div id="col_for_list" style="display:flex; flex-direction:column; gap:1.2rem; max-width:800px; margin:auto;"></div>
+            </div>
+        </div>
+        <button class="btn btn-danger btn-sm" style="opacity:0.4; margin-top:5rem;" onclick="nuke()">☢️ Wipe Global Data Node (DEV)</button>
+    </div>
+
+    <div id="register" class="page">
+        <div class="card" style="max-width:650px; margin:auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1);">
+            <h2 style="text-align:center; font-size:2.5rem; letter-spacing:-1.5px;">Join the Ecosystem</h2>
+            <form id="regForm">
+                <div class="form-grid"><div><label>UoA Student ID</label><input type="text" id="r_sid" required></div><div><label>Display Nickname</label><input type="text" id="r_anon" required></div></div>
+                <div class="form-grid"><div><label>First Name</label><input type="text" id="r_fn" required></div><div><label>Last Name</label><input type="text" id="r_ln" required></div></div>
+                <label>University Email</label>
+                <div style="display:flex; gap:12px; margin-bottom:1.5rem;"><input type="email" id="r_email" required style="margin:0"><button type="button" class="btn btn-outline btn-sm" style="width:150px; font-weight:800;" onclick="sendCode()">Get Code</button></div>
+                <div class="form-grid"><div><label>Verification Code</label><input type="text" id="r_code" required></div><div><label>Phone Number</label><input type="text" id="r_phone" required></div></div>
+                <div class="form-grid"><div><label>Gender</label><select id="r_gender"><option>Male</option><option>Female</option></select></div><div><label>Create Password</label><input type="password" id="r_pwd" required></div></div>
+                <button type="submit" class="btn" style="width:100%; margin-top:1.5rem; padding:1.2rem; font-size:1.1rem;">Authorize & Join</button>
+            </form>
+            <p style="text-align:center; margin-top:2rem;">Already registered? <b style="color:var(--primary); cursor:pointer;" onclick="navigate('login')">Sign In</b></p>
+        </div>
+    </div>
+
+    <div id="login" class="page">
+        <div class="card" style="max-width:440px; margin:auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.1);">
+            <h2 style="text-align:center; font-size:2.5rem; letter-spacing:-1.5px;">Portal Login</h2>
+            <form id="loginForm"><label>Email Address or SID</label><input type="text" id="l_user" required><label>Password</label><input type="password" id="l_pwd" required><button type="submit" class="btn" style="width:100%; margin-top:1.5rem; padding:1.2rem; font-size:1.1rem;">Access Hub</button></form>
+            <p style="text-align:center; margin-top:2.5rem;">New to DormLift? <b style="color:var(--primary); cursor:pointer;" onclick="navigate('register')">Register Now</b></p>
+        </div>
+    </div>
+</div>
+
+<div id="masterModal" class="modal" onclick="if(event.target.id==='masterModal') this.style.display='none'">
+    <div class="modal-content">
+        <button style="position:absolute; top:2rem; right:2.5rem; border:none; background:#f1f5f9; width:45px; height:45px; border-radius:50%; font-size:1.5rem; cursor:pointer;" onclick="document.getElementById('masterModal').style.display='none'">&times;</button>
+        <div id="mod_header" style="margin-bottom:1.5rem;"></div>
+        <div id="modal-map"></div>
+        <div class="thumb-strip" id="mod_thumbs"></div>
+        <div id="mod_body" style="background:#f8fafc; padding:2.5rem; border-radius:1.5rem; border:1px solid #eef2f6;"></div>
+        
+        <div id="mod_interaction" class="interaction-box">
+            <h4 style="margin-top:0; font-size:1.3rem;"><i class="far fa-comments" style="color:var(--primary); margin-right:10px;"></i> Discussion Thread</h4>
+            <div id="mod_comments" style="max-height:350px; overflow-y:auto; margin-bottom:2rem; padding-right:10px; scrollbar-width:thin;"></div>
+            <div id="reply_hint" class="reply-hint"><i class="fas fa-reply fa-flip-horizontal" style="margin-right:5px;"></i> Replying to <b id="reply_name"></b> <span onclick="cancelReply()" style="color:var(--danger); cursor:pointer; float:right; font-weight:800; font-size:0.75rem;">[Cancel Reply]</span></div>
+            <div style="display:flex; gap:12px;"><input type="text" id="mod_input" placeholder="Ask a question or reply..." style="margin:0; height:54px;"><button class="btn btn-sm" style="width:130px; height:54px; font-size:1rem;" onclick="postMasterComment()">Send</button></div>
+        </div>
+        <div id="mod_footer" style="margin-top:3rem; display:flex; justify-content:flex-end; gap:15px;"></div>
+    </div>
+</div>
+
+<div id="paymentModal" class="modal" onclick="if(event.target.id==='paymentModal') this.style.display='none'">
+    <div class="modal-content" style="max-width:550px; padding:3rem;">
+        <button style="position:absolute; top:1.5rem; right:1.5rem; border:none; background:transparent; font-size:1.5rem; cursor:pointer;" onclick="document.getElementById('paymentModal').style.display='none'">&times;</button>
+        <div style="text-align:center; margin-bottom:2rem;">
+            <i class="fas fa-shield-alt" style="font-size:3rem; color:var(--success); margin-bottom:1rem;"></i>
+            <h2 style="margin:0;">Secure Escrow Checkout</h2>
+            <p style="color:var(--muted); margin-top:5px;">Funds will be held securely in platform escrow until you confirm receipt.</p>
+        </div>
+        <div class="payment-card">
+            <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem;"><i class="fab fa-cc-visa" style="font-size:2rem; color:rgba(255,255,255,0.8);"></i><i class="fas fa-wifi" style="font-size:1.5rem; color:rgba(255,255,255,0.5);"></i></div>
+            <label style="color:rgba(255,255,255,0.6); font-size:0.75rem;">Card Number</label>
+            <div class="cc-input-group"><i class="far fa-credit-card"></i><input type="text" placeholder="0000 0000 0000 0000" maxlength="19" value="4242 4242 4242 4242"></div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+                <div><label style="color:rgba(255,255,255,0.6); font-size:0.75rem;">Expiry Date</label><div class="cc-input-group"><i class="far fa-calendar-alt"></i><input type="text" placeholder="MM/YY" maxlength="5" value="12/28"></div></div>
+                <div><label style="color:rgba(255,255,255,0.6); font-size:0.75rem;">CVC</label><div class="cc-input-group"><i class="fas fa-lock"></i><input type="password" placeholder="123" maxlength="3" value="123"></div></div>
+            </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:1.5rem; background:#f8fafc; border-radius:1rem; margin-bottom:2rem; border:1px solid #eef2f6;">
+            <div><div style="font-weight:700; color:var(--dark); font-size:1.1rem;" id="pay_item_title">Item Name</div><div style="font-size:0.85rem; color:var(--success); font-weight:700;"><i class="fas fa-check-circle"></i> DormLift Buyer Protection</div></div>
+            <div style="font-size:1.8rem; font-weight:900; color:var(--dark);" id="pay_item_price">$0.00</div>
+        </div>
+        <button id="btn_process_pay" class="btn" style="width:100%; padding:1.2rem; font-size:1.1rem;" onclick="processPayment()">Pay Securely <i class="fas fa-arrow-right"></i></button>
+    </div>
+</div>
+
+<div id="pointsModal" class="modal" onclick="if(event.target.id==='pointsModal') this.style.display='none'">
+    <div class="modal-content" style="max-width:600px;">
+        <button style="position:absolute; top:1.5rem; right:1.5rem; border:none; background:transparent; font-size:1.5rem; cursor:pointer;" onclick="document.getElementById('pointsModal').style.display='none'">&times;</button>
+        <h2 style="margin-top:0; color:var(--dark);"><i class="fas fa-medal" style="color:var(--medal);"></i> Medal Point History</h2>
+        <p style="color:var(--muted); margin-bottom:2rem;">Ledger of points awarded for assisting peers.</p>
+        <div id="pts_list" style="max-height: 400px; overflow-y: auto; border: 1px solid #eef2f6; border-radius: 12px;"></div>
+    </div>
+</div>
+
+<script>
+    // ======================= STATE & NAVIGATION =======================
+    let user = JSON.parse(localStorage.getItem('user'));
+    let map, routingControl, modalMap, modalRoutingControl, markers = [], modalMarkers = [];
+    
+    let state = { log: [], mar: [], for: [], activeId: null, activeType: null, activeReplyId: null, activeItem: null };
+
+    const getAddrText = (str) => { return (!str) ? 'Unknown Location' : (str.includes('@@') ? str.split('@@')[1] : str); };
+    const getAddrCoords = (str) => { if (!str || !str.includes('@@')) return null; let coords = str.split('@@')[0].split(',').map(Number); return (coords.length === 2 && !isNaN(coords[0])) ? coords : null; };
+
+    function navigate(p) {
+        if (!user && ['post', 'profile'].includes(p)) p = 'login';
+        document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+        const targetPage = document.getElementById(p);
+        if(targetPage) targetPage.classList.add('active');
+        renderMenu(); window.scrollTo(0,0);
+        
+        if(p === 'hall') loadHall();
+        if(p === 'post') initMap();
+        if(p === 'profile') loadProfileData();
+    }
+
+    function renderMenu() {
+        const menu = document.getElementById('menu');
+        if(!user) {
+            menu.innerHTML = `<a onclick="navigate('home')">Home</a><a onclick="navigate('hall')">Discover</a><a onclick="navigate('login')">Login</a>`;
+        } else {
+            menu.innerHTML = `
+                <div class="user-tag" onclick="navigate('profile')"><i class="fas fa-user-check" style="margin-right:5px;"></i> ${user.anonymous_name} <span style="margin-left:5px; background:white; color:var(--primary); padding:2px 8px; border-radius:10px; font-weight:900;">$${user.wallet_balance || 1000}</span></div>
+                <a onclick="navigate('hall')">Discover</a>
+                <a onclick="navigate('post')">Publish</a>
+                <a onclick="navigate('profile')">Dashboard</a>
+            `;
+        }
+    }
+
+    function logout() { localStorage.clear(); location.reload(); }
+
+    function switchHall(tab) {
+        ['logistics', 'market', 'forum'].forEach(t => {
+            const btn = document.getElementById(`btn_hall_${t}`); const content = document.getElementById(`hall_${t}`);
+            if(btn) { if (t === tab) btn.classList.add('active'); else btn.classList.remove('active'); }
+            if(content) { if (t === tab) { content.classList.add('active'); content.style.setProperty('display', 'block', 'important'); } else { content.classList.remove('active'); content.style.setProperty('display', 'none', 'important'); } }
+        });
+    }
+
+    function switchPost(tab) {
+        ['logistics', 'market', 'forum'].forEach(t => {
+            const btn = document.getElementById(`btn_post_${t}`); const content = document.getElementById(`post_${t}`);
+            if(btn) { if (t === tab) btn.classList.add('active'); else btn.classList.remove('active'); }
+            if(content) { if (t === tab) { content.classList.add('active'); content.style.setProperty('display', 'block', 'important'); } else { content.classList.remove('active'); content.style.setProperty('display', 'none', 'important'); } }
+        });
+        if(tab==='logistics' && map) setTimeout(()=>map.invalidateSize(), 200);
+    }
+
+    // THE FIX: Switch logic aligned EXACTLY with the new HTML container IDs.
+    function switchProf(tab) {
+        ['kb_log', 'kb_mar', 'kb_for'].forEach(t => {
+            const btn = document.getElementById(`btn_prof_${t}`); 
+            const content = document.getElementById(t);
+            if(btn) { if (t === tab) btn.classList.add('active'); else btn.classList.remove('active'); }
+            if(content) {
+                if (t === tab) {
+                    content.classList.add('active');
+                    content.style.setProperty('display', 'block', 'important');
+                } else {
+                    content.classList.remove('active');
+                    content.style.setProperty('display', 'none', 'important');
+                }
+            }
+        });
+    }
+    
+    function previewFiles(e, id) {
+        const s = document.getElementById(id); s.innerHTML = "";
+        Array.from(e.target.files).slice(0, 5).forEach(f => { const r = new FileReader(); r.onload = ev => s.innerHTML += `<img src="${ev.target.result}" class="thumb-img">`; r.readAsDataURL(f); });
+    }
+
+    function initMap() {
+        if(map) return;
+        setTimeout(() => {
+            map = L.map('map', {zoomControl: false}).setView([-36.8509, 174.7645], 14); L.control.zoom({position: 'topright'}).addTo(map);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {attribution: '&copy; CARTO'}).addTo(map);
+            routingControl = L.Routing.control({ lineOptions: { styles: [{ color: '#4f46e5', weight: 6, opacity: 0.8, dashArray: '10, 10' }] }, createMarker: () => null, show: false, addWaypoints: false }).on('routesfound', ev => {
+                document.getElementById('distVal').innerText = (ev.routes[0].summary.totalDistance / 1000).toFixed(2); document.getElementById('timeVal').innerText = Math.round(ev.routes[0].summary.totalTime / 60);
+            }).addTo(map);
+
+            map.on('click', async e => {
+                if (markers.length >= 2) { markers.forEach(m => map.removeLayer(m)); markers = []; routingControl.setWaypoints([]); document.getElementById('distVal').innerText = "0.00"; document.getElementById('timeVal').innerText = "0"; document.getElementById('p_from').value = ""; document.getElementById('p_to').value = ""; }
+                let isStart = markers.length === 0;
+                let customIcon = L.divIcon({ className: 'custom-pin', html: `<div class="pin-wrapper" style="border-color:${isStart?'var(--primary)':'var(--success)'}"><i class="fas ${isStart?'fa-street-view':'fa-flag-checkered'}" style="color:${isStart?'var(--primary)':'var(--success)'}; font-size:14px;"></i></div>`, iconSize: [34, 34], iconAnchor: [17, 34] });
+                markers.push(L.marker(e.latlng, {icon: customIcon}).addTo(map));
+                const input = document.getElementById(isStart ? 'p_from' : 'p_to'); input.value = "Fetching campus address...";
+                try { const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}`, { headers: {'User-Agent': 'DormLiftPro'} }); const d = await res.json(); input.value = d.display_name ? d.display_name.split(',').slice(0,3).join(',').trim() : `${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`; } catch { input.value = `${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`; }
+                if (markers.length === 2) routingControl.setWaypoints([markers[0].getLatLng(), markers[1].getLatLng()]);
+            });
+        }, 300);
+    }
+
+    async function safeFetchList(url) { try { const r = await fetch(url); const d = await r.json(); return d.list || []; } catch(e) { return []; } }
+
+    async function loadHall() {
+        state.log = await safeFetchList('/api/task/all?t=' + Date.now()); state.mar = await safeFetchList('/api/market/all?t=' + Date.now()); state.for = await safeFetchList('/api/forum/all?t=' + Date.now());
+        
+        document.getElementById('list_logistics').innerHTML = state.log.map(t => {
+            return `<div class="hub-row" onclick="openMasterModal('log', '${t._id}')"><div class="posted-col">PUB<span>${new Date(t.created_at).toLocaleDateString('en-GB', {day:'numeric', month:'short'})}</span></div><div class="details-strip"><div class="strip-header"><i class="far fa-calendar-check"></i> Move: ${t.move_date} @ ${t.move_time || 'TBA'}</div><div class="strip-route"><i class="fas fa-circle"></i> ${getAddrText(t.from_addr)} <i class="fas fa-arrow-right" style="margin:0 5px; color:var(--text);"></i> <i class="fas fa-flag-checkered"></i> ${getAddrText(t.to_addr)}</div><div class="strip-inventory"><span style="background:#fef3c7; color:var(--medal); padding:2px 8px; border-radius:6px; font-weight:800; font-size:0.75rem;">🏅 ${t.medal_points||1} Pts</span> <b>Items:</b> ${t.items_desc.substring(0, 60)}...</div></div><div class="reward-col">${t.reward}</div></div>`;
+        }).join('') || '<div style="padding:5rem; text-align:center; color:var(--muted); font-size:1.1rem; font-weight:600;">No active logistics missions.</div>';
+
+        document.getElementById('list_market').innerHTML = state.mar.map(m => {
+            let imgData = []; try { imgData = JSON.parse(m.img_url); } catch(e) {}
+            return `<div class="market-card" onclick="openMasterModal('mar', '${m._id}')"><img src="${imgData[0] || ''}" class="m-img" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\\'http://www.w3.org/2000/svg\\\' width=\\\'100\\\' height=\\\'100\\\'></svg>'"><div class="m-body"><div><h3 class="m-title">${m.title}</h3><div class="m-meta" style="margin-bottom:10px;"><span style="background:#f1f5f9; padding:2px 8px; border-radius:4px; color:var(--dark); font-weight:700;">${m.condition}</span></div></div><div><div class="m-price">$${m.price}</div><div class="m-meta"><i class="fas fa-map-marker-alt"></i> ${m.location}</div></div></div></div>`;
+        }).join('') || '<div style="padding:5rem; text-align:center; grid-column:1/-1; color:var(--muted); font-weight:600;">Flea market is empty.</div>';
+
+        document.getElementById('list_forum').innerHTML = state.for.map(f => {
+            let imgData = []; try { imgData = JSON.parse(f.img_url); } catch(e) {}
+            const isLiked = user && f.likes.includes(user.email);
+            return `<div class="forum-card"><div class="f-header"><div class="f-author"><i class="fas fa-user-circle"></i> ${f.author_name}</div><div class="f-time">${new Date(f.created_at).toLocaleString()}</div></div><div class="f-content">${f.content}</div>${imgData.length ? `<div class="f-images">${imgData.map(u => `<img src="${u}" onclick="window.open('${u}')">`).join('')}</div>` : ''}<div class="f-actions"><button class="btn btn-outline btn-sm" style="${isLiked?'background:var(--primary);color:white;border-color:var(--primary);':''}" onclick="interactForum('${f._id}', 'like')"><i class="fas fa-heart"></i> ${f.likes.length}</button><button class="btn btn-outline btn-sm" onclick="openMasterModal('for', '${f._id}')"><i class="fas fa-comment"></i> Discuss (${f.comments.length})</button></div></div>`;
+        }).join('') || '<div style="padding:5rem; text-align:center; color:var(--muted); font-weight:600;">No buzz yet on campus.</div>';
+    }
+
+    function initModalMap(fromC, toC) {
+        if(!modalMap) {
+            modalMap = L.map('modal-map', {zoomControl: false}).setView([-36.8509, 174.7645], 14); L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(modalMap); modalRoutingControl = L.Routing.control({ lineOptions: { styles: [{ color: '#4f46e5', weight: 5, opacity: 0.8, dashArray: '10, 10' }] }, createMarker: () => null, show: false, addWaypoints: false }).addTo(modalMap);
+        }
+        modalMarkers.forEach(layer => modalMap.removeLayer(layer)); modalMarkers = []; modalRoutingControl.setWaypoints([]);
+        if(fromC && toC) {
+            let sI = L.divIcon({className: 'custom-pin', html: `<div class="pin-wrapper" style="border-color:var(--primary)"><i class="fas fa-street-view" style="color:var(--primary); font-size:14px;"></i></div>`, iconSize: [34, 34], iconAnchor: [17, 34]});
+            let eI = L.divIcon({className: 'custom-pin', html: `<div class="pin-wrapper" style="border-color:var(--success)"><i class="fas fa-flag-checkered" style="color:var(--success); font-size:14px;"></i></div>`, iconSize: [34, 34], iconAnchor: [17, 34]});
+            let m1 = L.marker(fromC, {icon: sI}).addTo(modalMap); let m2 = L.marker(toC, {icon: eI}).addTo(modalMap); modalMarkers.push(m1, m2);
+            modalRoutingControl.setWaypoints([L.latLng(fromC[0], fromC[1]), L.latLng(toC[0], toC[1])]); modalMap.fitBounds(new L.featureGroup([m1, m2]).getBounds(), {padding: [30, 30]});
+        }
+        setTimeout(() => modalMap.invalidateSize(), 300); 
+    }
+
+    async function openMasterModal(type, id) {
+        state.activeType = type; state.activeId = id;
+        let endpoint = type === 'log' ? '/api/task/all' : (type === 'mar' ? '/api/market/all' : '/api/forum/all');
+        let d = {list:[]};
+        try { const res = await fetch(endpoint + '?t=' + Date.now()); d = await res.json(); } catch(e) {}
+        
+        let item = (d.list || []).find(x => x._id === id);
+        if(!item && user) {
+            try {
+                const resT = await fetch('/api/user/dashboard', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:user.email})}); const dT = await resT.json();
+                const sourceArray = type === 'log' ? (dT.tasks||[]) : (type === 'mar' ? (dT.market||[]) : (dT.posts||[])); item = sourceArray.find(x => x._id === id);
             } catch(e) {}
         }
+        if(!item) return alert("Item data unavailable.");
+        
+        state.activeItem = item; 
+        const currentUserEmail = user ? user.email : null;
 
-        async function acceptTask(id) {
-            if(!confirm("Accept this task?")) return;
-            showLoader(true); 
-            await fetch(`${API}/task/workflow`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ task_id: id, status: 'assigned', helper_id: user.student_id }) }); 
-            showLoader(false); closeModal('task-detail-modal'); navigate('prof');
+        const h = document.getElementById('mod_header'); const b = document.getElementById('mod_body'); const f = document.getElementById('mod_footer');
+        const mapDiv = document.getElementById('modal-map'); mapDiv.style.display = 'none';
+
+        let parsedImgs = []; try { parsedImgs = JSON.parse(item.img_url || '[]'); } catch(e) {}
+        document.getElementById('mod_thumbs').innerHTML = (parsedImgs||[]).map(u => `<img src="${u}" class="thumb-img" onclick="window.open('${u}')">`).join('');
+        
+        if (type === 'log') {
+            h.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="margin:0; color:var(--primary); font-size:2.8rem; letter-spacing:-1.5px;">${item.reward} Mission</h2><span class="status-badge" style="background:var(--primary); color:white;">${item.status}</span></div>`;
+            let fC = getAddrCoords(item.from_addr); let tC = getAddrCoords(item.to_addr);
+            if(fC && tC) { mapDiv.style.display = 'block'; initModalMap(fC, tC); }
+            
+            b.innerHTML = `
+                <div style="display:flex; flex-direction:column; gap:15px; font-size:1.05rem;">
+                    <div><b style="color:var(--muted); font-size:0.85rem; text-transform:uppercase;">📍 Pickup Location</b> <br><span style="font-weight:700; color:var(--dark);">${getAddrText(item.from_addr)}</span></div>
+                    <div><b style="color:var(--muted); font-size:0.85rem; text-transform:uppercase;">🏁 Destination Location</b> <br><span style="font-weight:700; color:var(--dark);">${getAddrText(item.to_addr)}</span></div>
+                    <div><b style="color:var(--muted); font-size:0.85rem; text-transform:uppercase;">⚙️ Logistics Complexity & Reward</b> <br><span style="font-weight:700; color:var(--dark);">${item.task_scale || 'Small'} Task (${item.has_elevator==='true'?'Elevator':'Stairs Only'})</span><span style="margin-left:10px; background:#fef3c7; color:var(--medal); padding:4px 10px; border-radius:8px; font-weight:800; font-size:0.85rem; border:1px solid #fde68a;">🏅 ${item.medal_points || 1} Pts for Helper</span></div>
+                    <div><b style="color:var(--muted); font-size:0.85rem; text-transform:uppercase;">📝 Complete Inventory</b> <br><span style="color:var(--text);">${item.items_desc}</span></div>
+                </div>`;
+            
+            let btns = '';
+            if(item.status === 'pending' && item.publisher_id !== currentUserEmail) btns = `<button class="btn" style="padding:1.4rem 3rem;" onclick="execFlow('log', 'assigned')">Accept Mission & Start Helping <i class="fas fa-check-circle"></i></button>`;
+            if(item.status === 'assigned' && item.publisher_id === currentUserEmail) btns = `<button class="btn" style="padding:1.4rem 3rem;" onclick="execFlow('log', 'completed')">Confirm Delivery & Release Funds <i class="fas fa-box-check"></i></button>`;
+            
+            if(item.publisher_id === currentUserEmail) {
+                if(item.status === 'pending') btns += `<button class="btn" style="background:#0f172a; padding:1.4rem 3rem; margin-right:10px;" onclick="execFlow('log', 'assigned')">DEV TEST: Accept Own</button>`;
+                btns += `<button class="btn btn-danger" onclick="deleteItem('log', '${item._id}')">Withdraw Task</button>`;
+            }
+
+            f.innerHTML = btns || `<span style="font-size:0.9rem; color:var(--muted); font-weight:800; text-transform:uppercase;">Read-Only Mode</span>`;
+        
+        } else if (type === 'mar') {
+            h.innerHTML = `<div style="display:flex; justify-content:space-between; align-items:center;"><h2 style="margin:0; color:var(--success); font-size:2.8rem; letter-spacing:-1.5px;">$${item.price}</h2><span class="status-badge" style="background:var(--success); color:white;">${item.status}</span></div>`;
+            let escrowNote = item.status === 'reserved' ? `<div style="background:#fef3c7; color:#b45309; padding:12px; border-radius:8px; margin-bottom:15px; font-weight:700;"><i class="fas fa-lock"></i> Funds ($${item.price}) secured in Escrow.</div>` : '';
+            b.innerHTML = `${escrowNote}
+                <div style="display:flex; flex-direction:column; gap:15px; font-size:1.05rem;">
+                    <h3 style="margin:0; color:var(--dark); font-size:1.8rem;">${item.title}</h3>
+                    <div><b style="color:var(--muted); font-size:0.85rem; text-transform:uppercase;">Condition & Location</b> <br><span style="font-weight:700; color:var(--dark);">${item.condition} • ${item.location}</span></div>
+                    <div><b style="color:var(--muted); font-size:0.85rem; text-transform:uppercase;">Description</b> <br><span style="color:var(--text);">${item.description}</span></div>
+                    <div style="font-size:0.85rem; color:var(--muted); font-weight:700; margin-top:1rem;">Seller: ${item.seller_id}</div>
+                </div>`;
+            
+            let btns = '';
+            if(item.status === 'available') {
+                if(item.seller_id !== currentUserEmail) {
+                    btns = `<button class="btn" style="background:var(--success); padding:1.4rem 3rem;" onclick="openPaymentModal()">Pay securely to Escrow <i class="fas fa-credit-card"></i></button>`;
+                } else {
+                    btns = `<button class="btn" style="background:#0f172a; padding:1.4rem 3rem; margin-right:10px;" onclick="openPaymentModal()">DEV TEST: Buy Own Item</button>
+                            <button class="btn btn-danger" onclick="deleteItem('mar', '${item._id}')">Remove Listing</button>`;
+                }
+            }
+            if(item.status === 'reserved' && item.buyer_id === currentUserEmail) {
+                btns = `<button class="btn" style="background:var(--primary); padding:1.4rem 3rem;" onclick="execFlow('mar', 'completed')">Confirm Receipt & Release Funds <i class="fas fa-handshake"></i></button>
+                        <button class="btn btn-outline" style="color:var(--danger); border-color:var(--danger);" onclick="execFlow('mar', 'available')">Cancel & Refund</button>`;
+            }
+            if(item.status === 'reserved' && item.seller_id === currentUserEmail) {
+                btns = `<span style="color:var(--muted); font-weight:700;">Waiting for Buyer to confirm receipt...</span>`;
+            }
+
+            f.innerHTML = btns || `<span style="font-size:0.9rem; color:var(--muted); font-weight:800; text-transform:uppercase;">Read-Only Mode</span>`;
+            
+        } else if (type === 'for') {
+            h.innerHTML = `<div style="display:flex; align-items:center; gap:15px;"><div class="brand-icon" style="border-radius:50%;"><i class="fas fa-user"></i></div><div><h3 style="margin:0;">${item.author_name}</h3><small style="color:var(--muted);">${new Date(item.created_at).toLocaleString()}</small></div></div>`;
+            b.innerHTML = `<div style="font-size:1.2rem; color:var(--dark); line-height:1.6;">${item.content}</div>`;
+            f.innerHTML = '';
         }
 
-        /* --- 个人中心 --- */
-        async function loadProfile() {
-            showLoader(true);
-            try {
-                const uRes = await fetch(`${API}/user/profile`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ student_id: user.student_id }) });
-                const u = (await uRes.json()).user;
-                const tRes = await fetch(`${API}/user/dashboard`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ student_id: user.student_id }) });
-                const tData = await tRes.json();
+        renderThreadedComments(item.comments || []);
+        document.getElementById('masterModal').style.display = 'flex';
+    }
 
-                document.getElementById('profile-form-area').innerHTML = `
-                    <label>Nickname</label><input type="text" id="up-anon" value="${u.anonymous_name}" class="input-pro">
-                    <label>Phone</label><input type="text" id="up-phone" value="${u.phone || ''}" class="input-pro">
-                    <label>Email (Verification for changes)</label>
-                    <div style="display:flex; gap:10px;">
-                        <input type="email" id="up-email" value="${u.email}" class="input-pro">
-                        <button class="btn" style="background:#0f172a; color:white; height:48px;" onclick="sendCode('up-email')">Code</button>
+    const escapeHTML = (str) => { return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); };
+
+    function renderThreadedComments(comments) {
+        const area = document.getElementById('mod_comments');
+        const parents = comments.filter(c => !c.parentId);
+        area.innerHTML = parents.map(p => {
+            const replies = comments.filter(r => String(r.parentId) === String(p.id));
+            return `
+            <div class="comment-item">
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><b style="color:var(--dark);">${p.user}</b><small style="color:var(--muted);">${new Date(p.time).toLocaleString()}</small></div>
+                <div style="font-size:1rem;">${p.text} <span class="reply-btn" onclick="setReply('${p.id}', '${escapeHTML(p.user)}')">Reply</span></div>
+                ${replies.map(r2 => `
+                    <div class="comment-item comment-reply">
+                        <div style="margin-bottom:6px;"><small style="color:var(--muted); font-weight:700;"><b>${r2.user}</b> replied to <b>${p.user}</b></small></div>
+                        <div style="font-size:0.95rem;">${r2.text} <span class="reply-btn" onclick="setReply('${r2.id}', '${escapeHTML(r2.user)}')">Reply</span></div>
+                        ${comments.filter(r3 => String(r3.parentId) === String(r2.id)).map(r3 => `
+                            <div class="comment-item comment-reply" style="border-left-color:var(--warning); background:white;">
+                                <div style="margin-bottom:6px;"><small style="color:var(--muted); font-weight:700;"><b>${r3.user}</b> replied to <b>${r2.user}</b></small></div>
+                                <div style="font-size:0.95rem;">${r3.text}</div>
+                            </div>`).join('')}
+                    </div>`).join('')}
+            </div>`;
+        }).join('') || '<p id="empty_comments_msg" style="color:var(--muted); text-align:center; padding:2rem; font-weight:600;">No discussion yet. Start the thread!</p>';
+    }
+
+    function setReply(id, name) { state.activeReplyId = id; document.getElementById('reply_hint').style.display='block'; document.getElementById('reply_name').innerText=name; document.getElementById('mod_input').focus(); }
+    function cancelReply() { state.activeReplyId = null; document.getElementById('reply_hint').style.display='none'; }
+
+    async function postMasterComment() {
+        if (!user) { alert("Please log in to participate."); return navigate('login'); }
+        const text = document.getElementById('mod_input').value; if(!text) return;
+        const apiPath = state.activeType === 'log' ? '/api/task/comment' : (state.activeType === 'mar' ? '/api/market/comment' : '/api/forum/interact');
+        const payload = { id: String(Date.now()), user: user.anonymous_name, text, parentId: state.activeReplyId, time: new Date() };
+        const body = state.activeType === 'for' ? { post_id: state.activeId, action: 'comment', email: user.email, comment: payload } : (state.activeType === 'log' ? { task_id: state.activeId, comment: payload } : { item_id: state.activeId, comment: payload });
+        
+        const emptyMsg = document.getElementById('empty_comments_msg');
+        if(emptyMsg) emptyMsg.style.display = 'none';
+        
+        let newHtml = "";
+        if(!state.activeReplyId) {
+            newHtml = `<div class="comment-item" style="border-left: 4px solid var(--success);"><div style="display:flex; justify-content:space-between; margin-bottom:8px;"><b style="color:var(--dark);">${payload.user}</b><small style="color:var(--success); font-weight:bold;">Just now</small></div><div style="font-size:1rem;">${payload.text}</div></div>`;
+            document.getElementById('mod_comments').insertAdjacentHTML('beforeend', newHtml);
+        } else {
+            newHtml = `<div class="comment-item comment-reply" style="border-left: 4px solid var(--success);"><div style="margin-bottom:6px;"><small style="color:var(--success); font-weight:700;"><b>${payload.user}</b> replied</small></div><div style="font-size:0.95rem;">${payload.text}</div></div>`;
+            document.getElementById('mod_comments').insertAdjacentHTML('beforeend', newHtml);
+        }
+
+        const box = document.getElementById('mod_comments');
+        box.scrollTop = box.scrollHeight;
+        document.getElementById('mod_input').value = ""; cancelReply(); 
+        
+        try { await fetch(apiPath, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); loadHall(); } catch(e) { console.error("Comment Sync Error"); }
+    }
+
+    function openPaymentModal() {
+        if (!user) { alert("Please log in to purchase."); return navigate('login'); }
+        const item = state.activeItem;
+        if(!item) return alert("System error: Item context lost.");
+
+        let safePrice = parseFloat(item.price);
+        if (isNaN(safePrice)) safePrice = 0;
+        
+        document.getElementById('pay_item_title').innerText = item.title;
+        document.getElementById('pay_item_price').innerText = `$${safePrice.toFixed(2)}`;
+        
+        const btn = document.getElementById('btn_process_pay');
+        btn.innerHTML = `Pay Securely <i class="fas fa-arrow-right"></i>`;
+        btn.disabled = false;
+        
+        document.getElementById('masterModal').style.display = 'none';
+        document.getElementById('paymentModal').style.display = 'flex';
+    }
+
+    function processPayment() {
+        if (!user) return alert("Session expired.");
+        const btn = document.getElementById('btn_process_pay');
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Processing Secure Payment...`;
+        
+        setTimeout(async () => {
+            btn.innerHTML = `<i class="fas fa-check-circle"></i> Payment Authorized`;
+            btn.style.background = 'var(--success)';
+            
+            try {
+                const res = await fetch('/api/market/workflow', { 
+                    method:'POST', headers:{'Content-Type':'application/json'}, 
+                    // THE FIX: Directly pulling _id from memory, guaranteed to be accurate
+                    body:JSON.stringify({item_id: state.activeItem._id, status: 'reserved', buyer_id: user.email}) 
+                });
+                const data = await res.json();
+                
+                setTimeout(() => {
+                    document.getElementById('paymentModal').style.display = 'none';
+                    btn.style.background = 'var(--primary-gradient)'; 
+                    
+                    if(data.msg === 'INSUFFICIENT_FUNDS') {
+                        alert("Virtual Bank declined: Insufficient wallet balance.");
+                    } else if (data.success) {
+                        alert("✅ Payment Successful!\n\nFunds are secured in Platform Escrow.\nThe item has been moved to your 'Reserved' Dashboard.");
+                        
+                        navigate('profile');
+                        setTimeout(() => {
+                            switchProf('kb_mar');
+                            const targetCol = document.getElementById('wrap_mar_prog');
+                            if (targetCol) {
+                                targetCol.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                targetCol.style.boxShadow = "0 0 0 4px var(--warning)";
+                                setTimeout(() => targetCol.style.boxShadow = "none", 2000);
+                            }
+                        }, 400);
+                    } else {
+                        alert("Payment processing error on server.");
+                    }
+                }, 800);
+            } catch(e) {
+                alert("Network error processing payment.");
+                document.getElementById('paymentModal').style.display = 'none';
+                btn.style.background = 'var(--primary-gradient)'; 
+            }
+        }, 1500);
+    }
+
+    async function execFlow(type, status) {
+        if (!user) { alert("Please log in to continue."); return navigate('login'); }
+        let actText = status === 'assigned' ? 'Accept Mission' : (status === 'completed' ? 'Confirm Delivery/Receipt' : 'Update Status');
+        if(!confirm(`Confirm: ${actText}?`)) return;
+        
+        const api = type === 'log' ? '/api/task/workflow' : '/api/market/workflow';
+        const body = type === 'log' ? { task_id: state.activeId, status, helper_id: user.email } : { item_id: state.activeId, status, buyer_id: user.email };
+        
+        try {
+            const res = await fetch(api, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+            const data = await res.json();
+            if (data.success) {
+                alert(`✅ Success!\n\nThe item has been updated on your Dashboard.`);
+                document.getElementById('masterModal').style.display = 'none'; 
+                
+                navigate('profile');
+                setTimeout(() => {
+                    switchProf(`kb_${type}`);
+                    const colMap = { 'log': 'wrap_log_prog', 'mar': 'wrap_mar_prog' };
+                    const targetCol = document.getElementById(colMap[type]);
+                    if (targetCol) {
+                        targetCol.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        targetCol.style.boxShadow = "0 0 0 4px var(--primary)";
+                        setTimeout(() => targetCol.style.boxShadow = "none", 2000);
+                    }
+                }, 400);
+            }
+        } catch(e) { alert("Network error executing flow."); }
+    }
+
+    async function deleteItem(type, id) {
+        if(!user) return;
+        if(!confirm("Permanently withdraw from network?")) return;
+        const api = type === 'log' ? '/api/task/delete' : '/api/market/delete';
+        await fetch(api, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({task_id:id, email:user.email}) });
+        document.getElementById('masterModal').style.display = 'none'; loadHall();
+    }
+
+    async function interactForum(id, action) {
+        if(!user) { alert("Please log in to like posts."); return; }
+        await fetch('/api/forum/interact', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({post_id:id, action, email:user.email}) });
+        loadHall(); 
+    }
+
+    // ======================= THE FIX: SAFE DOM ASSIGNMENT IN PROFILE =======================
+    async function loadProfileData() {
+        if (!user) return;
+        try {
+            const res = await fetch(`/api/user/detail/${user.email}`); const d = await res.json(); const u = d.user;
+            
+            user.wallet_balance = u.wallet_balance; localStorage.setItem('user', JSON.stringify(user)); renderMenu();
+
+            const fields = [
+                ['Student ID', u.student_id], ['University', u.school_name], ['Full Name', `${u.first_name} ${u.given_name}`], 
+                ['Nickname', u.anonymous_name], ['Gender', u.gender], ['Email', u.email], ['Phone', u.phone]
+            ];
+            
+            const pDetails = document.getElementById('profileDetails');
+            if(pDetails) {
+                pDetails.innerHTML = fields.map(f => `
+                    <div style="background:#f8fafc; padding:1.2rem; border-radius:12px; border:1px solid #eef2f6;">
+                        <label style="margin-bottom:8px;">${f[0]}</label><div style="font-weight:800; font-size:1.1rem; color:var(--dark);">${f[1]}</div>
+                    </div>`).join('');
+            }
+                
+            // THE FIX: Adding Null Checks before innerText assignments
+            const elWallet = document.getElementById('p_wallet');
+            if(elWallet) elWallet.innerText = u.wallet_balance || 0;
+            
+            const elMedals = document.getElementById('p_medals');
+            if(elMedals) elMedals.innerText = u.medal_points || 0;
+            
+            const elRating = document.getElementById('p_rating');
+            if(elRating) elRating.innerText = u.rating_avg ? u.rating_avg.toFixed(1) : "5.0";
+            
+            const elTaskCount = document.getElementById('p_task_count');
+            if(elTaskCount) elTaskCount.innerText = u.task_count || 0;
+
+            const phList = document.getElementById('pts_list');
+            if(phList) {
+                phList.innerHTML = (u.point_history || []).slice().reverse().map(h => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:1.2rem; border-bottom:1px solid #eef2f6;">
+                        <div><div style="font-weight:700; color:var(--dark); margin-bottom:4px;">${h.desc}</div><div style="font-size:0.8rem; color:var(--muted);">${new Date(h.date).toLocaleString()}</div></div>
+                        <div style="background:#fef3c7; color:var(--medal); padding:4px 10px; border-radius:8px; font-weight:800; font-size:0.8rem; border:1px solid #fde68a;">+${h.points} Pts</div>
                     </div>
-                    <label>Enter Code to Save (or 8888)</label>
-                    <input type="text" id="up-code" placeholder="6-digit code" class="input-pro">
-                    <button class="btn btn-primary" style="width:100%;" onclick="updateProfile()">Save All Changes</button>
-                `;
+                `).join('') || '<div style="padding:2rem; text-align:center; color:var(--muted);">No points earned yet. Complete a logistics task to earn!</div>';
+            }
 
-                const pub = tData.list.filter(x => x.publisher_id === u.student_id);
-                const acc = tData.list.filter(x => x.helper_id === u.student_id);
-                document.getElementById('profile-tasks-area').innerHTML = `
-                    <h4 style="margin:0 0 15px 0;">Published Tasks (${pub.length})</h4>
-                    ${pub.map(t => `<div class="task-item-sm"><span>${t.reward} - ${t.items_desc.substring(0,18)}..</span><span class="status-tag">${t.status}</span></div>`).join('') || '<p style="color:#94a3b8; font-size:13px;">None.</p>'}
-                    <h4 style="margin:30px 0 15px 0;">Accepted Tasks (${acc.length})</h4>
-                    ${acc.map(t => `<div class="task-item-sm"><span>${t.reward} - ${t.items_desc.substring(0,18)}..</span><span class="status-tag">${t.status}</span></div>`).join('') || '<p style="color:#94a3b8; font-size:13px;">None.</p>'}
-                `;
-                showLoader(false);
-            } catch(e) { showLoader(false); }
-        }
+            const resT = await fetch('/api/user/dashboard', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email:user.email})});
+            const dT = await resT.json();
+            
+            const tasksArray = dT.tasks || [];
+            const marketArray = dT.market || [];
+            const postsArray = dT.posts || [];
+            
+            const renderKB = (prefix, col, validStatuses, listArray) => {
+                const fList = listArray.filter(t => validStatuses.includes(t.status));
+                
+                const cntEl = document.getElementById(`cnt_${prefix}_${col}`);
+                if(cntEl) cntEl.innerText = fList.length;
+                
+                const colEl = document.getElementById(`col_${prefix}_${col}`);
+                if(!colEl) return;
 
-        async function updateProfile() {
-            const code = document.getElementById('up-code').value; if(!code) return alert("Code is required.");
-            const updates = { anonymous_name: document.getElementById('up-anon').value, phone: document.getElementById('up-phone').value, email: document.getElementById('up-email').value };
-            showLoader(true);
-            try {
-                const r = await fetch(`${API}/user/update`, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ student_id: user.student_id, email: updates.email, code, updates }) });
-                const res = await r.json(); showLoader(false);
-                if(res.success) { alert("Updated!"); user = res.user; localStorage.setItem('user', JSON.stringify(user)); renderNav(); loadProfile(); } else alert(res.message);
-            } catch(e) { showLoader(false); }
-        }
+                if (fList.length === 0) {
+                    colEl.innerHTML = `<div class="empty-col-placeholder"><i class="fas fa-box-open" style="margin-right:8px;"></i> Empty</div>`;
+                    return;
+                }
+                
+                colEl.innerHTML = fList.map(t => {
+                    const isOwner = (t.publisher_id || t.seller_id) === user.email;
+                    const topText = prefix === 'log' ? t.reward : `$${t.price} - ${t.title}`;
+                    const btmText = prefix === 'log' ? getAddrText(t.from_addr) : t.location;
+                    return `
+                    <div class="kanban-card" onclick="openMasterModal('${prefix}', '${t._id}')">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                            <span class="kb-role-tag ${isOwner?'kb-pub':'kb-help'}">${isOwner?(prefix==='log'?'Publisher':'Seller'):(prefix==='log'?'Helper':'Buyer')}</span>
+                            <span style="font-size:0.7rem; color:var(--muted); font-weight:700;">${new Date(t.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <div style="font-size:1.25rem; font-weight:900; color:var(--dark); margin-bottom:8px; letter-spacing:-0.5px;">${topText}</div>
+                        <div style="font-size:0.85rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><i class="fas fa-map-marker-alt" style="color:var(--primary);"></i> ${btmText}</div>
+                    </div>`;
+                }).join('');
+            };
 
-        async function resetDatabase() {
-            if (prompt("Enter 8888 to reset EVERYTHING:") !== '8888') return;
-            showLoader(true);
-            try { await fetch(`${API}/dev/reset`, { method: 'POST' }); showLoader(false); localStorage.clear(); location.reload(); } catch(e) { showLoader(false); }
-        }
-    </script>
+            renderKB('log', 'pend', ['pending'], tasksArray); renderKB('log', 'prog', ['assigned'], tasksArray); renderKB('log', 'hist', ['completed', 'reviewed'], tasksArray);
+            renderKB('mar', 'pend', ['available'], marketArray); renderKB('mar', 'prog', ['reserved'], marketArray); renderKB('mar', 'hist', ['completed'], marketArray);
+
+            const forumList = document.getElementById('col_for_list');
+            if(forumList) {
+                forumList.innerHTML = postsArray.map(p => `
+                    <div class="card" style="padding:1.5rem; margin-bottom:1rem; box-shadow:0 2px 4px rgba(0,0,0,0.02); cursor:pointer; transition:0.3s;" onclick="openMasterModal('for', '${p._id}')" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='#eef2f6'">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                            <span class="kb-role-tag kb-pub" style="background:#f1f5f9; color:var(--dark);">My Post</span>
+                            <small style="color:var(--muted);">${new Date(p.created_at).toLocaleString()}</small>
+                        </div>
+                        <div style="font-size:1.1rem; color:var(--dark); margin-bottom:10px;">${p.content}</div>
+                        <div style="font-size:0.85rem; color:var(--muted);"><i class="fas fa-heart" style="color:var(--danger);"></i> ${p.likes.length} Likes • <i class="fas fa-comment"></i> ${p.comments.length} Comments</div>
+                    </div>
+                `).join('') || '<div style="padding:3rem; text-align:center; color:var(--muted); font-weight:600; border:2px dashed #e2e8f0; border-radius:1rem;">You haven\'t posted anything in Campus Buzz yet.</div>';
+            }
+
+        } catch(e) { console.log("Profile Load Error:", e); }
+    }
+
+    // ======================= 7. POSTING ENGINES =======================
+    async function submitLogistics(e) {
+        e.preventDefault(); if(markers.length < 2) return alert("Please map locations.");
+        const f = new FormData();
+        f.append('publisher_id', user.email); f.append('from_addr', markers[0].getLatLng().lat+','+markers[0].getLatLng().lng+'@@'+document.getElementById('p_from').value); f.append('to_addr', markers[1].getLatLng().lat+','+markers[1].getLatLng().lng+'@@'+document.getElementById('p_to').value);
+        f.append('move_date', document.getElementById('p_date').value.split('T')[0]); f.append('move_time', document.getElementById('p_date').value.split('T')[1] || ''); f.append('reward', document.getElementById('p_reward').value); f.append('items_desc', document.getElementById('p_desc').value); f.append('task_scale', document.getElementById('p_scale').value); f.append('has_elevator', document.getElementById('p_elevator').checked);
+        Array.from(document.getElementById('p_file').files).forEach(x=>f.append('images', x));
+        document.querySelector('#form_logistics button[type="submit"]').innerText = "Broadcasting...";
+        await fetch('/api/task/create', {method:'POST', body:f}); 
+        document.querySelector('#form_logistics button[type="submit"]').innerHTML = 'Broadcast Task <i class="fas fa-paper-plane"></i>';
+        navigate('hall'); switchHall('logistics');
+    }
+
+    async function submitMarket(e) {
+        e.preventDefault(); const f = new FormData();
+        f.append('seller_id', user.email); f.append('title', document.getElementById('m_title').value); f.append('price', document.getElementById('m_price').value); f.append('condition', document.getElementById('m_cond').value); f.append('location', document.getElementById('m_loc').value); f.append('description', document.getElementById('m_desc').value);
+        Array.from(document.getElementById('m_file').files).forEach(x=>f.append('images', x));
+        document.querySelector('#form_market button[type="submit"]').innerText = "Listing...";
+        await fetch('/api/market/create', {method:'POST', body:f}); 
+        document.querySelector('#form_market button[type="submit"]').innerHTML = 'List Item in Market <i class="fas fa-store"></i>';
+        navigate('hall'); switchHall('market');
+    }
+
+    async function submitForum(e) {
+        e.preventDefault(); const f = new FormData();
+        f.append('author_id', user.email); f.append('author_name', user.anonymous_name); f.append('content', document.getElementById('f_content').value);
+        Array.from(document.getElementById('f_file').files).forEach(x=>f.append('images', x));
+        document.querySelector('#form_forum button[type="submit"]').innerText = "Posting...";
+        await fetch('/api/forum/create', {method:'POST', body:f}); 
+        document.querySelector('#form_forum button[type="submit"]').innerHTML = 'Post to Campus Buzz <i class="fas fa-fire"></i>';
+        document.getElementById('f_content').value = ""; navigate('hall'); switchHall('forum');
+    }
+
+    // ======================= 8. AUTHENTICATION =======================
+    async function sendCode() {
+        const email = document.getElementById('r_email').value; if(!email) return alert("Email required");
+        const btn = document.getElementById('btnSendCode'); btn.innerText = "Sending...";
+        await fetch('/api/auth/send-code', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email})});
+        alert("6-digit code dispatched."); btn.innerText = "Get Code";
+    }
+
+    document.getElementById('regForm').onsubmit = async e => {
+        e.preventDefault();
+        const b = { student_id: document.getElementById('r_sid').value, anonymous_name: document.getElementById('r_anon').value, first_name: document.getElementById('r_fn').value, given_name: document.getElementById('r_ln').value, email: document.getElementById('r_email').value, password: document.getElementById('r_pwd').value, code: document.getElementById('r_code').value, phone: document.getElementById('r_phone').value, gender: document.getElementById('r_gender').value };
+        const res = await fetch('/api/auth/register', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(b)});
+        if(res.ok) { alert("Registration Verified!"); navigate('login'); } else alert("Registration Failed. Check code.");
+    };
+
+    document.getElementById('loginForm').onsubmit = async e => {
+        e.preventDefault();
+        const res = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email: document.getElementById('l_user').value, password: document.getElementById('l_pwd').value})});
+        const d = await res.json(); if(d.success) { user = d.user; localStorage.setItem('user', JSON.stringify(user)); navigate('home'); } else alert("Authentication Failed.");
+    };
+
+    function nuke() { if(confirm("NUKE ALL GLOBAL DATA?")) fetch('/api/dev/nuke', {method:'POST'}).then(()=>logout()); }
+    
+    navigate('home');
+</script>
 </body>
 </html>
